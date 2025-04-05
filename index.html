@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Carrega a versão mais recente do Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -12,7 +13,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: background-color 0.5s; /* Suaviza a mudança de cor */
+            transition: background-color 0.5s;
         }
         button {
             padding: 15px 30px;
@@ -43,15 +44,22 @@
         }
         document.body.style.backgroundColor = getRandomColor();
 
+        // Verifica se o Supabase foi carregado
+        if (typeof supabase === 'undefined') {
+            console.error('Erro: Biblioteca Supabase não foi carregada. Verifique o script CDN.');
+        } else {
+            console.log('Biblioteca Supabase carregada com sucesso.');
+        }
+
         // Configuração do Supabase
         const SUPABASE_URL = 'https://bsbipbftwrwjiepxmbb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmlwYmZ0d3Jyd2ppZXB4bWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NzczNzQsImV4cCI6MjA1OTQ1MzM3NH0.NB9LBMjPZXF2Z7L78S9-3WhrIKeRyfNvJ-hgVLIKd7g';
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Teste básico de conexão com Supabase
         async function testSupabaseConnection() {
             try {
-                const { data, error } = await supabase.from('visitor_data').select('*').limit(1);
+                const { data, error } = await supabaseClient.from('visitor_data').select('*').limit(1);
                 if (error) throw error;
                 console.log('Conexão com Supabase OK:', data);
             } catch (error) {
@@ -114,7 +122,7 @@
             console.log('Dados a serem enviados:', data);
 
             try {
-                const { data: responseData, error } = await supabase
+                const { data: responseData, error } = await supabaseClient
                     .from('visitor_data')
                     .insert([data])
                     .select();
