@@ -3,267 +3,288 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KART - Cris Zen</title>
+  <title>KART - Cris Zen Edition</title>
   <style>
     :root { --accent: #ff6a61; }
     body {
-      margin: 0; background: linear-gradient(135deg, #2d131d 0%, #1a0a10 100%);
+      margin: 0; background: linear-gradient(135deg, #1a0a10 0%, #2d131d 100%);
       min-height: 100vh; overflow: hidden; touch-action: none; user-select: none;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
 
-    /* CONTADORES */
     #emoji-tracker {
       position: fixed; top: 0; left: 0; right: 0; padding: 10px;
       background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px);
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-      z-index: 5000; border-bottom: 1px solid rgba(255, 106, 97, 0.1);
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
+      z-index: 5000; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
+    
     .counter-item {
       display: flex; align-items: center; background: rgba(255, 255, 255, 0.1);
-      padding: 4px 10px; border-radius: 20px; color: white; font-weight: 600;
-      font-size: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: background-color 0.3s, transform 0.1s;
+      padding: 4px 10px; border-radius: 20px; color: white; font-weight: 700;
+      font-size: 0.85rem; border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s;
     }
-    .counter-item.bump { transform: scale(1.2); }
 
-    /* FOTOS */
+    .counter-milestone {
+      box-shadow: 0 0 20px #ffd700;
+      background: rgba(255, 215, 0, 0.3) !important;
+      transform: scale(1.2);
+    }
+
     .photo {
       position: absolute; width: 160px; height: 213px; border-radius: 18px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.6); cursor: grab; z-index: 10;
-      transition: transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s;
+      transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.5s;
       will-change: left, top, transform; opacity: 0;
     }
-    .photo.is-pressed { transform: scale(0.9) !important; filter: brightness(0.8); }
+    .photo.is-pressed { transform: scale(0.88) !important; filter: brightness(0.8); }
     .photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; pointer-events: none; }
 
-    /* PARTÍCULAS ANTI-STRESS */
-    .particle {
-      position: fixed; pointer-events: none; border-radius: 50%; z-index: 5500;
-      animation: particleOut 0.6s ease-out forwards;
+    .persistent-emoji {
+      position: absolute; font-size: 3rem; cursor: grab; z-index: 20;
+      will-change: transform; pointer-events: auto;
+      filter: drop-shadow(0 5px 15px rgba(0,0,0,0.4));
     }
-    @keyframes particleOut {
-      0% { transform: translate(0, 0) scale(1); opacity: 1; }
-      100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
-    }
+    /* Classe para forçar os emojis ficarem acima de tudo */
+    .always-on-top { z-index: 8000 !important; }
 
     .flying-emoji {
       position: fixed; pointer-events: none; font-size: 1.8rem; z-index: 6000;
-      transition: transform 0.7s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s;
+      transition: transform 1.2s linear; opacity: 1;
     }
 
-    /* CELEBRAÇÃO */
     #celebration-overlay {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      pointer-events: none; z-index: 9000; text-align: center; display: none; width: 90%;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 9000; 
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; background: rgba(0,0,0,0.2);
     }
-    .milestone-emoji { font-size: 120px; display: block; filter: drop-shadow(0 0 30px rgba(255,215,0,0.4)); }
-    .milestone-text {
-      color: white; font-size: 1.8rem; font-weight: 800; text-shadow: 0 4px 15px rgba(0,0,0,0.8);
-      margin-top: 15px; display: block;
+    .milestone-big-emoji {
+      font-size: 120px; filter: drop-shadow(0 0 30px gold);
+      animation: pulseIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    @keyframes milestoneAnim {
-      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-      15% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-      85% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    .milestone-text { color: white; font-size: 2.2rem; font-weight: 900; text-shadow: 0 0 20px rgba(255,215,0,0.6); text-transform: uppercase; margin-top: 20px; }
+
+    @keyframes pulseIn {
+      0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
     }
 
-    .resize-btn {
-      position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px;
-      background: var(--accent); border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; cursor: pointer; z-index: 4500; font-size: 1.5rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .bottom-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 80px;
-      background: rgba(0,0,0,0.85); backdrop-filter: blur(15px);
-      display: flex; align-items: center; justify-content: center;
-      transform: translateY(100%); transition: transform 0.3s; z-index: 4400;
+    .resize-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 4500; font-size: 1.4rem; }
+    
+    .bottom-bar { 
+      position: fixed; bottom: 0; left: 0; right: 0; height: 100px; 
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); 
+      display: flex; flex-direction: column; align-items: center; justify-content: center; 
+      transform: translateY(100%); transition: transform 0.3s; z-index: 4400; gap: 10px;
     }
     .bottom-bar.show { transform: translateY(0); }
+
+    .toggle-layers {
+      background: rgba(255,255,255,0.15); color: white; border: 1px solid white;
+      padding: 8px 15px; border-radius: 10px; cursor: pointer; font-size: 0.9rem;
+      transition: 0.3s;
+    }
+    .toggle-layers.active { background: #ffd700; color: #000; border-color: #ffd700; }
   </style>
 </head>
 <body>
 
-  <div id="emoji-tracker"></div>
-  <div id="container"></div>
-  <div id="celebration-overlay">
-    <span class="milestone-emoji" id="m-emoji"></span>
-    <span class="milestone-text" id="m-text"></span>
-  </div>
+<div id="emoji-tracker"></div>
+<div id="container"></div>
+<div id="celebration-overlay">
+  <div class="milestone-big-emoji" id="m-emoji"></div>
+  <div class="milestone-text" id="m-text"></div>
+</div>
 
-  <div class="resize-btn" id="toggleBar">📏</div>
-  <div class="bottom-bar" id="bar">
-    <input type="range" min="80" max="280" value="160" id="slider" style="width:70%">
-  </div>
+<div class="resize-btn" id="toggleBar">📏</div>
+<div class="bottom-bar" id="bar">
+  <input type="range" min="80" max="280" value="160" id="slider" style="width:70%">
+  <button class="toggle-layers" id="layerBtn">Emojis Camadas 🧅</button>
+</div>
 
-  <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const emojiList = ['🐱', '💖', '✨', '🍓', '🫧', '🐾', '🦋', '💘', '🎀', '🌈', '🍦', '🍩'];
-    const counts = {};
-    let masterPhrases = ["Gosto muito de você, Cris.", "Você é incrível, sabia?", "Adoro seu jeito, Cris.", "Você me faz bem.", "É muito bom estar com você.", "Cris, você é especial.", "Gosto da nossa vibe.", "Você alegra meu dia.", "Sua companhia é a melhor.", "Cris, adoro conversar com você.", "Você é nota dez.", "Sinto algo bom por você.", "Você me faz sorrir fácil.", "Gosto de cada detalhe seu.", "Cris, você é autêntica.", "É leve estar ao seu lado.", "Você é minha pessoa favorita.", "Gosto do seu sorriso.", "Você me entende bem.", "Cris, admiro muito você.", "Adoro nosso tempo juntos.", "Você é meu porto seguro.", "Gosto do seu abraço.", "Você é única, Cris.", "Fico feliz quando te vejo.", "Você é minha parceria.", "Gosto de como você é.", "Cris, você faz a diferença.", "Tudo fica melhor com você.", "Adoro sua energia.", "Você é meu pensamento bom.", "Cris, você é sensacional.", "Gosto de você de verdade."];
-    let currentPhrases = [...masterPhrases];
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const emojiList = ['❤️','💫','💐','🍇','🍬','🌺','🥰','💞','🐱','🍓','🍭','🔥','😍','🌻'];
+const images = [
+  "https://i.imgur.com/HkPHfzy.jpeg", "https://i.imgur.com/bIw1Gkh.jpeg", "https://i.imgur.com/tN8UFlF.jpeg",
+  "https://i.imgur.com/2Q72BKM.jpeg", "https://i.imgur.com/KZWPswo.jpeg", "https://i.imgur.com/x0juqKo.jpeg",
+  "https://i.imgur.com/egecHI0.jpeg", "https://i.imgur.com/m7fZaa1.jpeg", "https://i.imgur.com/5LrRizo.jpeg",
+  "https://i.imgur.com/GpsUJrG.jpeg", "https://i.imgur.com/4qVmdRv.jpeg", "https://i.imgur.com/HrC12cq.jpeg"
+];
 
-    // SOM POP (Sintetizador)
-    function playPopSound() {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-    }
+const counts = {};
+const masterPhrases = ["Incrível!", "Parabéns!", "Sem estresse!", "Você está indo bem!", "Mandou muito!", "Continue assim!", "relaxamento!", "Uau!", "Excelente!", "Que fase!", "Muito bom!", "Arrasou!", "Isso aí!", "Perfeito!", "Boa!", "Sensacional!", "Relaxa e clica!", "Pura energia!", "Top demais!", "Show!", "Mandou bem!", "Impressionante!", "Gostei de ver!", "Tá rápida!", "Ritmo perfeito!", "Wow", "Dando um show!", "Manda ver!", "Mais 100!", "Ótimo trabalho!", "Calma e foco!", "Lets GO!"];
+let currentPhrases = [...masterPhrases];
+let highestZ = 100;
+let emojisAlwaysOnTop = false;
 
-    // CRIAR EXPLOSÃO DE PARTÍCULAS
-    function createBurst(x, y) {
-      for (let i = 0; i < 8; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = Math.random() * 8 + 4;
-        const color = `hsl(${Math.random() * 360}, 80%, 60%)`;
-        p.style.width = size + 'px'; p.style.height = size + 'px';
-        p.style.backgroundColor = color;
-        p.style.left = x + 'px'; p.style.top = y + 'px';
-        p.style.setProperty('--dx', (Math.random() - 0.5) * 200 + 'px');
-        p.style.setProperty('--dy', (Math.random() - 0.5) * 200 + 'px');
-        document.body.appendChild(p);
-        setTimeout(() => p.remove(), 600);
-      }
-    }
-
-    // Inicializa contadores
-    emojiList.forEach(emoji => {
-      counts[emoji] = 0;
-      const item = document.createElement('div');
-      item.className = 'counter-item';
-      item.id = `counter-${emoji}`;
-      item.innerHTML = `<span>${emoji}</span> <span style="margin-left:5px" class="val">0</span>`;
-      document.getElementById('emoji-tracker').appendChild(item);
-    });
-
-    const images = ["https://i.imgur.com/eMRQSjF.jpeg", "https://i.imgur.com/ka5Cn6P.jpeg", "https://i.imgur.com/SiBUlbA.jpeg", "https://i.imgur.com/sDSUHvp.jpeg", "https://i.imgur.com/5vy3Voz.jpeg", "https://i.imgur.com/1DK5YBC.jpeg", "https://i.imgur.com/ggLzRvO.jpeg", "https://i.imgur.com/ZPhSvJ6.jpeg"];
-    let topZ = 100;
-
-    images.forEach((src, i) => {
-      const el = document.createElement('div');
-      el.className = 'photo';
-      el.innerHTML = `<img src="${src}">`;
-      el.dataset.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
-      el.style.left = (10 + Math.random() * 60) + 'vw';
-      el.style.top = (150 + Math.random() * 50) + 'px';
-      document.getElementById('container').appendChild(el);
-      setTimeout(() => { el.style.opacity = '1'; startFloat(el); }, i * 100);
-
-      let isDown = false, moved = false, startX, startY, elX, elY;
-
-      el.addEventListener('pointerdown', e => {
+function makeDraggable(el) {
+    let isDown = false, moved = false, startX, startY, elX, elY;
+    
+    el.addEventListener('pointerdown', e => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         isDown = true; moved = false;
         startX = e.clientX; startY = e.clientY;
         elX = el.offsetLeft; elY = el.offsetTop;
-        el.style.animation = 'none';
+        
+        // Se não for modo "sempre acima" ou se for uma foto, aumenta o z-index
+        if (!emojisAlwaysOnTop || el.classList.contains('photo')) {
+            highestZ++;
+            el.style.zIndex = highestZ;
+        }
+        
+        el.style.animationPlayState = 'paused';
         el.classList.add('is-pressed');
         el.setPointerCapture(e.pointerId);
-      });
-
-      el.addEventListener('pointermove', e => {
-        if (!isDown) return;
-        const dx = e.clientX - startX, dy = e.clientY - startY;
-        if (!moved && Math.hypot(dx, dy) > 10) {
-          moved = true;
-          el.classList.remove('is-pressed');
-          el.classList.add('dragging');
-          el.style.zIndex = ++topZ;
-        }
-        if (moved) {
-          el.style.left = (elX + dx) + 'px';
-          el.style.top = (elY + dy) + 'px';
-        }
-      });
-
-      el.addEventListener('pointerup', e => {
-        if (!isDown) return;
-        el.classList.remove('is-pressed');
-        if (!moved) {
-          playPopSound();
-          createBurst(e.clientX, e.clientY);
-          spawnFlying(e.clientX, e.clientY, el.dataset.emoji);
-        }
-        el.classList.remove('dragging');
-        startFloat(el);
-        isDown = false;
-      });
     });
 
-    function startFloat(el) {
-      el.style.animation = `floatGentle ${15 + Math.random() * 10}s infinite ease-in-out`;
+    el.addEventListener('pointermove', e => {
+        if (!isDown) return;
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        if (Math.hypot(dx, dy) > 5) moved = true;
+        if (moved) {
+            el.style.left = (elX + dx) + 'px';
+            el.style.top = (elY + dy) + 'px';
+        }
+    });
+
+    el.addEventListener('pointerup', e => {
+        if (!isDown) return;
+        isDown = false;
+        el.classList.remove('is-pressed');
+        el.style.animationPlayState = 'running';
+        if (!moved && el.classList.contains('photo')) {
+            spawnFlying(e.clientX, e.clientY, el.dataset.emoji);
+        }
+    });
+}
+
+emojiList.forEach(emoji => {
+  counts[emoji] = 0;
+  const item = document.createElement('div');
+  item.className = 'counter-item';
+  item.id = `counter-${emoji}`;
+  item.innerHTML = `<span>${emoji}</span><span style="margin-left:5px" class="val">0</span>`;
+  document.getElementById('emoji-tracker').appendChild(item);
+});
+
+images.forEach((src, i) => {
+  const el = document.createElement('div');
+  el.className = 'photo';
+  el.innerHTML = `<img src="${src}">`;
+  el.dataset.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+  el.style.left = (Math.random() * 70) + 'vw';
+  el.style.top = (150 + Math.random() * 150) + 'px';
+  document.getElementById('container').appendChild(el);
+  makeDraggable(el);
+  setTimeout(() => { 
+    el.style.opacity = '1'; 
+    el.style.animation = `floatGentle ${15 + Math.random() * 10}s infinite ease-in-out`;
+  }, i * 80);
+});
+
+function spawnFlying(x, y, fav) {
+  for (let i = 0; i < 3; i++) {
+    const char = Math.random() > 0.8 ? emojiList[Math.floor(Math.random() * emojiList.length)] : fav;
+    const p = document.createElement('div');
+    p.className = 'flying-emoji';
+    p.textContent = char;
+    p.style.left = (x - 20 + (Math.random() * 20 - 10)) + 'px'; 
+    p.style.top = (y - 20 + (Math.random() * 20 - 10)) + 'px';
+    document.body.appendChild(p);
+    
+    requestAnimationFrame(() => {
+      const target = document.getElementById(`counter-${char}`);
+      const rect = target.getBoundingClientRect();
+      p.style.transform = `translate(${rect.left + 5 - x}px, ${rect.top + 5 - y}px)`;
+      setTimeout(() => { updateCount(char); p.remove(); }, 1200);
+    });
+  }
+}
+
+function updateCount(emoji) {
+  counts[emoji]++;
+  const item = document.getElementById(`counter-${emoji}`);
+  item.querySelector('.val').textContent = counts[emoji];
+  
+  requestAnimationFrame(() => {
+    item.style.transition = 'none'; 
+    item.style.backgroundColor = `hsla(${Math.random() * 360}, 85%, 55%, 1)`;
+    item.style.transform = 'scale(1.25)';
+    void item.offsetWidth; 
+    item.style.transition = 'background-color 0.4s, transform 0.2s';
+    item.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+    item.style.transform = 'scale(1)';
+  });
+
+  if (counts[emoji] % 100 === 0) spawnSinglePersistent(emoji);
+}
+
+function spawnSinglePersistent(emoji) {
+  const overlay = document.getElementById('celebration-overlay');
+  const txtIdx = Math.floor(Math.random() * currentPhrases.length);
+  const counterItem = document.getElementById(`counter-${emoji}`);
+
+  document.getElementById('m-emoji').textContent = emoji;
+  document.getElementById('m-text').textContent = currentPhrases[txtIdx];
+  overlay.style.display = 'flex';
+  counterItem.classList.add('counter-milestone');
+
+  setTimeout(() => { 
+    overlay.style.display = 'none'; 
+    counterItem.classList.remove('counter-milestone');
+
+    const el = document.createElement('div');
+    el.className = 'persistent-emoji';
+    if(emojisAlwaysOnTop) el.classList.add('always-on-top');
+    el.textContent = emoji;
+    el.style.left = (20 + Math.random() * 60) + 'vw';
+    el.style.top = (20 + Math.random() * 60) + 'vh';
+    
+    const dur = 15 + Math.random() * 25;
+    const driftX = (Math.random() - 0.5) * 60;
+    const driftY = (Math.random() - 0.5) * 60;
+    
+    el.style.animation = `drift ${dur}s infinite alternate ease-in-out`;
+    el.style.setProperty('--dx', driftX + 'vw');
+    el.style.setProperty('--dy', driftY + 'vh');
+    
+    document.body.appendChild(el);
+    makeDraggable(el);
+  }, 2200);
+}
+
+// Lógica dos Botões da Barra
+document.getElementById('toggleBar').onclick = () => document.getElementById('bar').classList.toggle('show');
+
+document.getElementById('layerBtn').onclick = function() {
+  emojisAlwaysOnTop = !emojisAlwaysOnTop;
+  this.classList.toggle('active');
+  const allPersistent = document.querySelectorAll('.persistent-emoji');
+  allPersistent.forEach(e => {
+    if(emojisAlwaysOnTop) e.classList.add('always-on-top');
+    else {
+        e.classList.remove('always-on-top');
+        e.style.zIndex = 20; // Reseta para o padrão
     }
+  });
+};
 
-    function spawnFlying(x, y, fav) {
-      for (let i = 0; i < 3; i++) {
-        const char = Math.random() > 0.7 ? emojiList[Math.floor(Math.random() * emojiList.length)] : fav;
-        const p = document.createElement('div');
-        p.className = 'flying-emoji';
-        p.textContent = char;
-        p.style.left = (x - 15) + 'px'; p.style.top = (y - 15) + 'px';
-        document.body.appendChild(p);
-        
-        const jX = (Math.random() - 0.5) * 150, jY = (Math.random() - 0.5) * 150;
-        
-        requestAnimationFrame(() => {
-          p.style.transform = `translate(${jX}px, ${jY}px) scale(1.2)`;
-          setTimeout(() => {
-            const target = document.getElementById(`counter-${char}`);
-            const rect = target.getBoundingClientRect();
-            p.style.transform = `translate(${rect.left + 10 - x}px, ${rect.top + 10 - y}px) scale(0.3)`;
-            p.style.opacity = '0';
-            setTimeout(() => { updateCount(char); p.remove(); }, 600);
-          }, 150);
-        });
-      }
-    }
+document.getElementById('slider').oninput = (e) => {
+  document.querySelectorAll('.photo').forEach(p => {
+    p.style.width = e.target.value + 'px';
+    p.style.height = (e.target.value * 1.33) + 'px';
+  });
+};
 
-    function updateCount(emoji) {
-      counts[emoji]++;
-      const item = document.getElementById(`counter-${emoji}`);
-      item.querySelector('.val').textContent = counts[emoji];
-      
-      const hue = Math.floor(Math.random() * 360);
-      item.style.backgroundColor = `hsla(${hue}, 70%, 50%, 0.8)`;
-      item.classList.add('bump');
-      
-      setTimeout(() => {
-        item.style.backgroundColor = '';
-        item.classList.remove('bump');
-      }, 200);
-
-      if (counts[emoji] % 100 === 0) showMilestone(emoji);
-    }
-
-    function showMilestone(emoji) {
-      const overlay = document.getElementById('celebration-overlay');
-      if (currentPhrases.length === 0) currentPhrases = [...masterPhrases];
-      const idx = Math.floor(Math.random() * currentPhrases.length);
-      const txt = currentPhrases.splice(idx, 1)[0];
-      
-      document.getElementById('m-emoji').textContent = emoji;
-      document.getElementById('m-text').textContent = txt;
-      overlay.style.display = 'block';
-      overlay.style.animation = 'milestoneAnim 3s forwards';
-      setTimeout(() => overlay.style.display = 'none', 3000);
-    }
-
-    document.getElementById('toggleBar').onclick = () => document.getElementById('bar').classList.toggle('show');
-    document.getElementById('slider').oninput = (e) => {
-      document.querySelectorAll('.photo').forEach(p => {
-        p.style.width = e.target.value + 'px';
-        p.style.height = (e.target.value * 1.33) + 'px';
-      });
-    };
-  </script>
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes floatGentle { 0%, 100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(15px, -15px) rotate(3deg); } }
+  @keyframes drift { 0% { transform: translate(0,0); } 100% { transform: translate(var(--dx), var(--dy)) rotate(360deg); } }
+`;
+document.head.appendChild(styleSheet);
+</script>
 </body>
 </html>
