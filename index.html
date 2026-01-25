@@ -2,216 +2,268 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KART</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KART - Cris Zen</title>
   <style>
+    :root { --accent: #ff6a61; }
     body {
-      margin: 0;
-      font-family: 'Arial', sans-serif;
-      background-color: #4a1a2c;
-      min-height: 100vh;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      user-select: none;
+      margin: 0; background: linear-gradient(135deg, #2d131d 0%, #1a0a10 100%);
+      min-height: 100vh; overflow: hidden; touch-action: none; user-select: none;
+      font-family: 'Segoe UI', system-ui, sans-serif;
     }
-    .fixed-container {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      max-width: 320px;
-      background-color: rgba(74, 26, 44, 0.9);
-      z-index: 10;
-      text-align: center;
-      padding: 20px;
+
+    /* CONTADORES */
+    #emoji-tracker {
+      position: fixed; top: 0; left: 0; right: 0; padding: 10px;
+      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px);
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+      z-index: 5000; border-bottom: 1px solid rgba(255, 106, 97, 0.1);
     }
-    .header h1 {
-      font-size: 36px;
-      color: #ff6f61;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-      margin: 0;
+    .counter-item {
+      display: flex; align-items: center; background: rgba(255, 255, 255, 0.1);
+      padding: 4px 10px; border-radius: 20px; color: white; font-weight: 600;
+      font-size: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background-color 0.3s, transform 0.1s;
     }
-    .divider {
-      width: 80%;
-      height: 2px;
-      background-color: #ff6f61;
-      margin: 20px auto;
+    .counter-item.bump { transform: scale(1.2); }
+
+    /* FOTOS */
+    .photo {
+      position: absolute; width: 160px; height: 213px; border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6); cursor: grab; z-index: 10;
+      transition: transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s;
+      will-change: left, top, transform; opacity: 0;
     }
-    .text-container p {
-      font-size: 20px;
-      color: #ff6f61;
-      opacity: 0;
-      transition: opacity 1s ease-in-out;
-    }
-    .text-container p.visible {
-      opacity: 1;
-    }
-    .image-container {
-      position: absolute;
-      top: 0;
-      width: 100%;
-      max-width: 320px;
-      display: flex;
-      flex-direction: column;
-      will-change: transform;
-    }
-    .image-container img {
-      width: 100%;
-      height: 320px;
-      object-fit: cover;
-      flex-shrink: 0;
-      border-radius: 15px;
-      margin-bottom: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
+    .photo.is-pressed { transform: scale(0.9) !important; filter: brightness(0.8); }
+    .photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; pointer-events: none; }
+
+    /* PARTÍCULAS ANTI-STRESS */
     .particle {
-      position: absolute;
-      pointer-events: none;
-      animation: float 2s ease-out forwards;
+      position: fixed; pointer-events: none; border-radius: 50%; z-index: 5500;
+      animation: particleOut 0.6s ease-out forwards;
     }
-    @keyframes float {
-      0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+    @keyframes particleOut {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
     }
+
+    .flying-emoji {
+      position: fixed; pointer-events: none; font-size: 1.8rem; z-index: 6000;
+      transition: transform 0.7s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s;
+    }
+
+    /* CELEBRAÇÃO */
+    #celebration-overlay {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 9000; text-align: center; display: none; width: 90%;
+    }
+    .milestone-emoji { font-size: 120px; display: block; filter: drop-shadow(0 0 30px rgba(255,215,0,0.4)); }
+    .milestone-text {
+      color: white; font-size: 1.8rem; font-weight: 800; text-shadow: 0 4px 15px rgba(0,0,0,0.8);
+      margin-top: 15px; display: block;
+    }
+    @keyframes milestoneAnim {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      15% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      85% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    }
+
+    .resize-btn {
+      position: fixed; bottom: 20px; right: 20px; width: 55px; height: 55px;
+      background: var(--accent); border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; z-index: 4500; font-size: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 80px;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(15px);
+      display: flex; align-items: center; justify-content: center;
+      transform: translateY(100%); transition: transform 0.3s; z-index: 4400;
+    }
+    .bottom-bar.show { transform: translateY(0); }
   </style>
 </head>
 <body>
-  <div class="fixed-container">
-    <div class="header">
-      <h1>KART</h1>
-    </div>
-    <div class="divider"></div>
-    <div class="text-container">
-      <p id="random-text"></p>
-    </div>
+
+  <div id="emoji-tracker"></div>
+  <div id="container"></div>
+  <div id="celebration-overlay">
+    <span class="milestone-emoji" id="m-emoji"></span>
+    <span class="milestone-text" id="m-text"></span>
   </div>
-  <div class="image-container" id="image-container">
-    <img src="https://i.imgur.com/eMRQSjF.jpeg" alt="Foto 2">
-    <img src="https://i.imgur.com/ka5Cn6P.jpeg" alt="Foto 1">
-    <img src="https://i.imgur.com/SiBUlbA.jpeg" alt="Foto 3">
-    <img src="https://i.imgur.com/sDSUHvp.jpeg" alt="Foto 4">
-    <img src="https://i.imgur.com/5vy3Voz.jpeg" alt="Foto 5">
-    <img src="https://i.imgur.com/1DK5YBC.jpeg" alt="Foto 6">
-    <img src="https://i.imgur.com/ggLzRvO.jpeg" alt="Foto 7">
-    <img src="https://i.imgur.com/ZPhSvJ6.jpeg" alt="Foto 8">
-    <img src="https://i.imgur.com/eMRQSjF.jpeg" alt="Foto 2">
-    <img src="https://i.imgur.com/ka5Cn6P.jpeg" alt="Foto 1">
+
+  <div class="resize-btn" id="toggleBar">📏</div>
+  <div class="bottom-bar" id="bar">
+    <input type="range" min="80" max="280" value="160" id="slider" style="width:70%">
   </div>
 
   <script>
-    const texts = [
-      "Também conhecida como P",
-      "Coisa mais fofinha",
-      "Miau miau miau",
-      "Você me faz sorrir sempre! 😊",
-      "Tem vício em banhos",
-      "Sente vergonha e esconde o rosto",
-      "É uma gata inteligente"
-    ];
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const emojiList = ['🐱', '💖', '✨', '🍓', '🫧', '🐾', '🦋', '💘', '🎀', '🌈', '🍦', '🍩'];
+    const counts = {};
+    let masterPhrases = ["Gosto muito de você, Cris.", "Você é incrível, sabia?", "Adoro seu jeito, Cris.", "Você me faz bem.", "É muito bom estar com você.", "Cris, você é especial.", "Gosto da nossa vibe.", "Você alegra meu dia.", "Sua companhia é a melhor.", "Cris, adoro conversar com você.", "Você é nota dez.", "Sinto algo bom por você.", "Você me faz sorrir fácil.", "Gosto de cada detalhe seu.", "Cris, você é autêntica.", "É leve estar ao seu lado.", "Você é minha pessoa favorita.", "Gosto do seu sorriso.", "Você me entende bem.", "Cris, admiro muito você.", "Adoro nosso tempo juntos.", "Você é meu porto seguro.", "Gosto do seu abraço.", "Você é única, Cris.", "Fico feliz quando te vejo.", "Você é minha parceria.", "Gosto de como você é.", "Cris, você faz a diferença.", "Tudo fica melhor com você.", "Adoro sua energia.", "Você é meu pensamento bom.", "Cris, você é sensacional.", "Gosto de você de verdade."];
+    let currentPhrases = [...masterPhrases];
 
-    const textElement = document.getElementById('random-text');
-    const imageContainer = document.getElementById('image-container');
-    let currentPosition = 0;
-    const imageHeight = 330;
-    const slides = 8;
-    let startY = 0;
-    let isDragging = false;
-    let velocity = 0;
+    // SOM POP (Sintetizador)
+    function playPopSound() {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
 
-    function changeText() {
-      textElement.classList.remove('visible');
+    // CRIAR EXPLOSÃO DE PARTÍCULAS
+    function createBurst(x, y) {
+      for (let i = 0; i < 8; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 8 + 4;
+        const color = `hsl(${Math.random() * 360}, 80%, 60%)`;
+        p.style.width = size + 'px'; p.style.height = size + 'px';
+        p.style.backgroundColor = color;
+        p.style.left = x + 'px'; p.style.top = y + 'px';
+        p.style.setProperty('--dx', (Math.random() - 0.5) * 200 + 'px');
+        p.style.setProperty('--dy', (Math.random() - 0.5) * 200 + 'px');
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 600);
+      }
+    }
+
+    // Inicializa contadores
+    emojiList.forEach(emoji => {
+      counts[emoji] = 0;
+      const item = document.createElement('div');
+      item.className = 'counter-item';
+      item.id = `counter-${emoji}`;
+      item.innerHTML = `<span>${emoji}</span> <span style="margin-left:5px" class="val">0</span>`;
+      document.getElementById('emoji-tracker').appendChild(item);
+    });
+
+    const images = ["https://i.imgur.com/eMRQSjF.jpeg", "https://i.imgur.com/ka5Cn6P.jpeg", "https://i.imgur.com/SiBUlbA.jpeg", "https://i.imgur.com/sDSUHvp.jpeg", "https://i.imgur.com/5vy3Voz.jpeg", "https://i.imgur.com/1DK5YBC.jpeg", "https://i.imgur.com/ggLzRvO.jpeg", "https://i.imgur.com/ZPhSvJ6.jpeg"];
+    let topZ = 100;
+
+    images.forEach((src, i) => {
+      const el = document.createElement('div');
+      el.className = 'photo';
+      el.innerHTML = `<img src="${src}">`;
+      el.dataset.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+      el.style.left = (10 + Math.random() * 60) + 'vw';
+      el.style.top = (150 + Math.random() * 50) + 'px';
+      document.getElementById('container').appendChild(el);
+      setTimeout(() => { el.style.opacity = '1'; startFloat(el); }, i * 100);
+
+      let isDown = false, moved = false, startX, startY, elX, elY;
+
+      el.addEventListener('pointerdown', e => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        isDown = true; moved = false;
+        startX = e.clientX; startY = e.clientY;
+        elX = el.offsetLeft; elY = el.offsetTop;
+        el.style.animation = 'none';
+        el.classList.add('is-pressed');
+        el.setPointerCapture(e.pointerId);
+      });
+
+      el.addEventListener('pointermove', e => {
+        if (!isDown) return;
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        if (!moved && Math.hypot(dx, dy) > 10) {
+          moved = true;
+          el.classList.remove('is-pressed');
+          el.classList.add('dragging');
+          el.style.zIndex = ++topZ;
+        }
+        if (moved) {
+          el.style.left = (elX + dx) + 'px';
+          el.style.top = (elY + dy) + 'px';
+        }
+      });
+
+      el.addEventListener('pointerup', e => {
+        if (!isDown) return;
+        el.classList.remove('is-pressed');
+        if (!moved) {
+          playPopSound();
+          createBurst(e.clientX, e.clientY);
+          spawnFlying(e.clientX, e.clientY, el.dataset.emoji);
+        }
+        el.classList.remove('dragging');
+        startFloat(el);
+        isDown = false;
+      });
+    });
+
+    function startFloat(el) {
+      el.style.animation = `floatGentle ${15 + Math.random() * 10}s infinite ease-in-out`;
+    }
+
+    function spawnFlying(x, y, fav) {
+      for (let i = 0; i < 3; i++) {
+        const char = Math.random() > 0.7 ? emojiList[Math.floor(Math.random() * emojiList.length)] : fav;
+        const p = document.createElement('div');
+        p.className = 'flying-emoji';
+        p.textContent = char;
+        p.style.left = (x - 15) + 'px'; p.style.top = (y - 15) + 'px';
+        document.body.appendChild(p);
+        
+        const jX = (Math.random() - 0.5) * 150, jY = (Math.random() - 0.5) * 150;
+        
+        requestAnimationFrame(() => {
+          p.style.transform = `translate(${jX}px, ${jY}px) scale(1.2)`;
+          setTimeout(() => {
+            const target = document.getElementById(`counter-${char}`);
+            const rect = target.getBoundingClientRect();
+            p.style.transform = `translate(${rect.left + 10 - x}px, ${rect.top + 10 - y}px) scale(0.3)`;
+            p.style.opacity = '0';
+            setTimeout(() => { updateCount(char); p.remove(); }, 600);
+          }, 150);
+        });
+      }
+    }
+
+    function updateCount(emoji) {
+      counts[emoji]++;
+      const item = document.getElementById(`counter-${emoji}`);
+      item.querySelector('.val').textContent = counts[emoji];
+      
+      const hue = Math.floor(Math.random() * 360);
+      item.style.backgroundColor = `hsla(${hue}, 70%, 50%, 0.8)`;
+      item.classList.add('bump');
+      
       setTimeout(() => {
-        const randomIndex = Math.floor(Math.random() * texts.length);
-        textElement.textContent = texts[randomIndex];
-        textElement.classList.add('visible');
-      }, 1000);
+        item.style.backgroundColor = '';
+        item.classList.remove('bump');
+      }, 200);
+
+      if (counts[emoji] % 100 === 0) showMilestone(emoji);
     }
 
-    function moveImages(position) {
-      const totalHeight = imageHeight * slides;
-      currentPosition = ((position % totalHeight) + totalHeight) % totalHeight;
-      imageContainer.style.transform = `translateY(${-currentPosition}px)`;
+    function showMilestone(emoji) {
+      const overlay = document.getElementById('celebration-overlay');
+      if (currentPhrases.length === 0) currentPhrases = [...masterPhrases];
+      const idx = Math.floor(Math.random() * currentPhrases.length);
+      const txt = currentPhrases.splice(idx, 1)[0];
+      
+      document.getElementById('m-emoji').textContent = emoji;
+      document.getElementById('m-text').textContent = txt;
+      overlay.style.display = 'block';
+      overlay.style.animation = 'milestoneAnim 3s forwards';
+      setTimeout(() => overlay.style.display = 'none', 3000);
     }
 
-    function animate() {
-      if (!isDragging) {
-        currentPosition += velocity;
-        velocity *= 0.85; // Maior deslize
-        moveImages(currentPosition);
-      }
-      requestAnimationFrame(animate);
-    }
-
-    function createParticle(x, y) {
-      const emojis = ['❤️', '💖', '💫', '🍬', '⭐'];
-      const particle = document.createElement('div');
-      particle.className = 'particle';
-      particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-      particle.style.left = `${x}px`;
-      particle.style.top = `${y}px`;
-      particle.style.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
-      document.body.appendChild(particle);
-      setTimeout(() => particle.remove(), 2000);
-    }
-
-    document.addEventListener('click', (e) => {
-      for (let i = 0; i < 5; i++) {
-        const offsetX = (Math.random() - 0.5) * 50;
-        const offsetY = (Math.random() - 0.5) * 50;
-        createParticle(e.clientX + offsetX, e.clientY + offsetY);
-      }
-    });
-
-    imageContainer.addEventListener('mousedown', (e) => {
-      startY = e.clientY;
-      isDragging = true;
-      velocity = 0;
-      e.preventDefault();
-    });
-
-    imageContainer.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const currentY = e.clientY;
-      const diff = (startY - currentY) * 0.6;
-      moveImages(currentPosition + diff);
-      velocity = diff * 0.1; // Maior impulso para deslize
-      startY = currentY;
-    });
-
-    imageContainer.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-
-    imageContainer.addEventListener('mouseleave', () => {
-      isDragging = false;
-    });
-
-    imageContainer.addEventListener('touchstart', (e) => {
-      startY = e.touches[0].clientY;
-      isDragging = true;
-      velocity = 0;
-      e.preventDefault();
-    });
-
-    imageContainer.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      const currentY = e.touches[0].clientY;
-      const diff = (startY - currentY) * 0.6;
-      moveImages(currentPosition + diff);
-      velocity = diff * 0.1; // Maior impulso para deslize
-      startY = currentY;
-    });
-
-    imageContainer.addEventListener('touchend', () => {
-      isDragging = false;
-    });
-
-    changeText();
-    setInterval(changeText, 5000);
-    moveImages(currentPosition);
-    requestAnimationFrame(animate);
+    document.getElementById('toggleBar').onclick = () => document.getElementById('bar').classList.toggle('show');
+    document.getElementById('slider').oninput = (e) => {
+      document.querySelectorAll('.photo').forEach(p => {
+        p.style.width = e.target.value + 'px';
+        p.style.height = (e.target.value * 1.33) + 'px';
+      });
+    };
   </script>
 </body>
 </html>
