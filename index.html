@@ -46,7 +46,6 @@
       will-change: transform; pointer-events: auto;
       filter: drop-shadow(0 5px 15px rgba(0,0,0,0.4));
     }
-    /* Classe para forçar os emojis ficarem acima de tudo */
     .always-on-top { z-index: 8000 !important; }
 
     .flying-emoji {
@@ -106,6 +105,20 @@
 
 <script>
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playPop() {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+}
+
 const emojiList = ['❤️','💫','💐','🍇','🍬','🌺','🥰','💞','🐱','🍓','🍭','🔥','😍','🌻'];
 const images = [
   "https://i.imgur.com/HkPHfzy.jpeg", "https://i.imgur.com/bIw1Gkh.jpeg", "https://i.imgur.com/tN8UFlF.jpeg",
@@ -115,21 +128,25 @@ const images = [
 ];
 
 const counts = {};
-const masterPhrases = ["Incrível!", "Parabéns!", "Sem estresse!", "Você está indo bem!", "Mandou muito!", "Continue assim!", "relaxamento!", "Uau!", "Excelente!", "Que fase!", "Muito bom!", "Arrasou!", "Isso aí!", "Perfeito!", "Boa!", "Sensacional!", "Relaxa e clica!", "Pura energia!", "Top demais!", "Show!", "Mandou bem!", "Impressionante!", "Gostei de ver!", "Tá rápida!", "Ritmo perfeito!", "Wow", "Dando um show!", "Manda ver!", "Mais 100!", "Ótimo trabalho!", "Calma e foco!", "Lets GO!"];
+const masterPhrases = ["Incrível!", "Parabéns!", "Mandou muito!", "Continue assim!", "Uau!", "Excelente!", "Arrasou!", "Perfeito!", "Boa!", "Show!", "Mais 100!"];
 let currentPhrases = [...masterPhrases];
 let highestZ = 100;
 let emojisAlwaysOnTop = false;
 
 function makeDraggable(el) {
     let isDown = false, moved = false, startX, startY, elX, elY;
-    
+    let activePointerId = null; // Trava para impedir saltos com dois dedos
+
     el.addEventListener('pointerdown', e => {
+        // Se já tiver um dedo controlando esta imagem, ignora o segundo
+        if (activePointerId !== null) return;
+        activePointerId = e.pointerId;
+
         if (audioCtx.state === 'suspended') audioCtx.resume();
         isDown = true; moved = false;
         startX = e.clientX; startY = e.clientY;
         elX = el.offsetLeft; elY = el.offsetTop;
         
-        // Se não for modo "sempre acima" ou se for uma foto, aumenta o z-index
         if (!emojisAlwaysOnTop || el.classList.contains('photo')) {
             highestZ++;
             el.style.zIndex = highestZ;
@@ -141,7 +158,7 @@ function makeDraggable(el) {
     });
 
     el.addEventListener('pointermove', e => {
-        if (!isDown) return;
+        if (!isDown || e.pointerId !== activePointerId) return;
         const dx = e.clientX - startX, dy = e.clientY - startY;
         if (Math.hypot(dx, dy) > 5) moved = true;
         if (moved) {
@@ -151,13 +168,22 @@ function makeDraggable(el) {
     });
 
     el.addEventListener('pointerup', e => {
-        if (!isDown) return;
+        if (e.pointerId !== activePointerId) return;
         isDown = false;
+        activePointerId = null;
         el.classList.remove('is-pressed');
         el.style.animationPlayState = 'running';
+        
         if (!moved && el.classList.contains('photo')) {
+            playPop();
             spawnFlying(e.clientX, e.clientY, el.dataset.emoji);
         }
+    });
+
+    el.addEventListener('pointercancel', () => {
+        isDown = false;
+        activePointerId = null;
+        el.classList.remove('is-pressed');
     });
 }
 
@@ -256,18 +282,16 @@ function spawnSinglePersistent(emoji) {
   }, 2200);
 }
 
-// Lógica dos Botões da Barra
 document.getElementById('toggleBar').onclick = () => document.getElementById('bar').classList.toggle('show');
 
 document.getElementById('layerBtn').onclick = function() {
   emojisAlwaysOnTop = !emojisAlwaysOnTop;
   this.classList.toggle('active');
-  const allPersistent = document.querySelectorAll('.persistent-emoji');
-  allPersistent.forEach(e => {
+  document.querySelectorAll('.persistent-emoji').forEach(e => {
     if(emojisAlwaysOnTop) e.classList.add('always-on-top');
     else {
         e.classList.remove('always-on-top');
-        e.style.zIndex = 20; // Reseta para o padrão
+        e.style.zIndex = 20;
     }
   });
 };
