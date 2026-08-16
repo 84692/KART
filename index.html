@@ -74,6 +74,49 @@
             background: #4a9eff;
         }
 
+        .turn-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .hand-btn {
+            flex-shrink: 0;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            padding: 12px 16px;
+            font-size: 14px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .hand-btn:hover {
+            background: #2a2a2a;
+        }
+
+        .hand-btn.active {
+            background: #4a9eff;
+            color: #0a0a0a;
+            border-color: #4a9eff;
+        }
+
+        .turn-status {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .turn-status.mine {
+            color: #51cf66;
+        }
+
+        .turn-status.theirs {
+            color: #ff6b6b;
+        }
+
         .waveform {
             display: flex;
             align-items: flex-end;
@@ -282,6 +325,11 @@
                 <span id="channelText">Canal livre, escutando</span>
             </div>
 
+            <div class="turn-row">
+                <button id="handBtn" class="hand-btn">✋ Pedir vez</button>
+                <span class="turn-status mine" id="turnStatus">Vez</span>
+            </div>
+
             <div class="waveform" id="waveform"></div>
 
             <div class="feed" id="feed">
@@ -315,9 +363,17 @@
                 this.letterToFreq = {};
                 this.START_FREQ = 600;
                 this.END_FREQ = 800;
+                // Sinal de "pedir vez": 2 frequências fixas e agudas
+                // (3800/4200Hz), fora da faixa de letras e dos marcadores,
+                // difíceis de confundir com ruído comum ou com a mensagem.
+                this.HAND_FREQ_A = 3800;
+                this.HAND_FREQ_B = 4200;
 
                 this.isSending = false;
                 this.oscilators = [];
+
+                this.myTurn = true;
+                this.handSeqBuffer = [];
 
                 this.inMessage = false;
                 this.currentTranscript = '';
@@ -336,6 +392,7 @@
             initializeEventListeners() {
                 document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
                 document.getElementById('requestPermBtn').addEventListener('click', () => this.requestPermission());
+                document.getElementById('handBtn').addEventListener('click', () => this.requestTurn());
 
                 document.getElementById('messageInput').addEventListener('keydown', (e) => {
                     if (e.ctrlKey && e.key === 'Enter') {
@@ -436,7 +493,7 @@
                     sendBtn.disabled = true;
                 } else {
                     text.textContent = 'Canal livre, escutando';
-                    sendBtn.disabled = false;
+                    sendBtn.disabled = !this.myTurn;
                 }
             }
 
@@ -448,7 +505,7 @@
                 let maxBin = 0;
 
                 const minBin = Math.floor(500 / binWidth);
-                const maxBinLimit = Math.ceil(3500 / binWidth);
+                const maxBinLimit = Math.ceil(4500 / binWidth);
 
                 for (let i = minBin; i < maxBinLimit && i < dataArray.length; i++) {
                     if (dataArray[i] > maxEnergy) {
@@ -464,6 +521,8 @@
             matchTone(detectedFreq) {
                 if (Math.abs(detectedFreq - this.START_FREQ) < 40) return 'START';
                 if (Math.abs(detectedFreq - this.END_FREQ) < 40) return 'END';
+                if (Math.abs(detectedFreq - this.HAND_FREQ_A) < 40) return 'HAND_A';
+                if (Math.abs(detectedFreq - this.HAND_FREQ_B) < 40) return 'HAND_B';
 
                 let closestLetter = null;
                 let minDiff = 40;
@@ -516,6 +575,18 @@
             }
 
             registerTone(tone) {
+                if (tone === 'HAND_A' || tone === 'HAND_B') {
+                    this.handSeqBuffer.push(tone);
+                    if (this.handSeqBuffer.length > 3) this.handSeqBuffer.shift();
+
+                    if (this.handSeqBuffer.join(',') === 'HAND_A,HAND_B,HAND_A') {
+                        this.handSeqBuffer = [];
+                        this.onHandSignalReceived();
+                    }
+                    return;
+                }
+                this.handSeqBuffer = [];
+
                 if (tone === 'START') {
                     this.inMessage = true;
                     this.currentTranscript = '';
@@ -537,6 +608,16 @@
                 if (this.inMessage) {
                     this.currentTranscript += tone;
                 }
+            }
+
+            // O outro dispositivo pediu a vez: bloqueia meu envio até eu
+            // também apertar a mão, devolvendo a vez para ele decidir de novo.
+            onHandSignalReceived() {
+                this.myTurn = false;
+                document.getElementById('sendBtn').disabled = true;
+                const status = document.getElementById('turnStatus');
+                status.textContent = 'Na escuta';
+                status.className = 'turn-status theirs';
             }
 
             animateWaveform() {
@@ -575,6 +656,68 @@
                 document.getElementById('messageInput').focus();
 
                 this.transmit(message, bubbleId);
+            }
+
+            // Envia o sinal sonoro de "pedir vez". A escuta é pausada
+            // automaticamente durante a transmissão (mesmo lock do isSending),
+            // então o próprio pedido nunca é interpretado como recebido.
+            requestTurn() {
+                if (this.isSending || this.inMessage) return;
+
+                const handBtn = document.getElementById('handBtn');
+                const status = document.getElementById('turnStatus');
+
+                this.isSending = true;
+                handBtn.classList.add('active');
+                status.textContent = 'Pedindo vez';
+                status.className = 'turn-status';
+                this.setChannelState('sending');
+
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+
+                const totalDuration = this.playHandSignal();
+
+                setTimeout(() => {
+                    this.isSending = false;
+                    this.myTurn = true;
+                    handBtn.classList.remove('active');
+                    status.textContent = 'Vez';
+                    status.className = 'turn-status mine';
+                    this.setChannelState('idle');
+                }, totalDuration + 150);
+            }
+
+            playHandSignal() {
+                const DUR = 0.09;
+                const GAP = 0.03;
+                let time = this.audioContext.currentTime;
+
+                const playTone = (freq) => {
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioContext.destination);
+
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(freq, time);
+
+                    gain.gain.setValueAtTime(0, time);
+                    gain.gain.linearRampToValueAtTime(0.25, time + 0.005);
+                    gain.gain.setValueAtTime(0.25, time + DUR - 0.01);
+                    gain.gain.linearRampToValueAtTime(0, time + DUR);
+
+                    osc.start(time);
+                    osc.stop(time + DUR + 0.01);
+                    this.oscilators.push(osc);
+
+                    time += DUR + GAP;
+                };
+
+                [this.HAND_FREQ_A, this.HAND_FREQ_B, this.HAND_FREQ_A].forEach(playTone);
+
+                return (time - this.audioContext.currentTime) * 1000;
             }
 
             transmit(message, bubbleId) {
