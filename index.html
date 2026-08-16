@@ -131,13 +131,6 @@
             color: #cfe8ff;
         }
 
-        .bubble.pending {
-            align-self: flex-end;
-            background: #1a1a1a;
-            color: #666;
-            border: 1px dashed #333;
-        }
-
         .input-row {
             display: flex;
             gap: 8px;
@@ -185,6 +178,12 @@
 
         button:active {
             transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
         }
 
         .speed-section {
@@ -297,9 +296,9 @@
             <div class="speed-section">
                 <div class="speed-label-row">
                     <span>Velocidade de transmissão</span>
-                    <span class="speed-value" id="speedValue">Normal</span>
+                    <span class="speed-value" id="speedValue">Rápida</span>
                 </div>
-                <input type="range" id="speedSlider" min="0" max="100" value="35">
+                <input type="range" id="speedSlider" min="0" max="100" value="65">
             </div>
         </div>
     </div>
@@ -317,7 +316,6 @@
                 this.START_FREQ = 600;
                 this.END_FREQ = 800;
 
-                this.sendQueue = [];
                 this.isSending = false;
                 this.oscilators = [];
 
@@ -327,7 +325,7 @@
                 this.toneFrames = 0;
                 this.silenceFrames = 0;
 
-                this.speed = 35;
+                this.speed = 65;
                 this.updateSpeedTimings();
 
                 this.initializeEventListeners();
@@ -336,12 +334,12 @@
             }
 
             initializeEventListeners() {
-                document.getElementById('sendBtn').addEventListener('click', () => this.queueMessage());
+                document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
                 document.getElementById('requestPermBtn').addEventListener('click', () => this.requestPermission());
 
                 document.getElementById('messageInput').addEventListener('keydown', (e) => {
                     if (e.ctrlKey && e.key === 'Enter') {
-                        this.queueMessage();
+                        this.sendMessage();
                     }
                 });
 
@@ -425,19 +423,20 @@
             setChannelState(state) {
                 const dot = document.getElementById('channelDot');
                 const text = document.getElementById('channelText');
+                const sendBtn = document.getElementById('sendBtn');
                 dot.className = 'channel-dot';
 
                 if (state === 'sending') {
                     dot.classList.add('sending');
                     text.textContent = 'Transmitindo...';
+                    sendBtn.disabled = true;
                 } else if (state === 'receiving') {
                     dot.classList.add('busy');
                     text.textContent = 'Recebendo mensagem...';
-                } else if (state === 'queued') {
-                    dot.classList.add('busy');
-                    text.textContent = `Canal ocupado, ${this.sendQueue.length} na fila`;
+                    sendBtn.disabled = true;
                 } else {
                     text.textContent = 'Canal livre, escutando';
+                    sendBtn.disabled = false;
                 }
             }
 
@@ -530,8 +529,7 @@
                         if (this.currentTranscript.trim()) {
                             this.addBubble(this.currentTranscript, 'received');
                         }
-                        this.setChannelState(this.sendQueue.length ? 'queued' : 'idle');
-                        this.tryProcessQueue();
+                        this.setChannelState('idle');
                     }
                     return;
                 }
@@ -564,28 +562,19 @@
                 requestAnimationFrame(() => this.animateWaveform());
             }
 
-            queueMessage() {
+            sendMessage() {
+                if (this.isSending || this.inMessage) return;
+
                 const raw = document.getElementById('messageInput').value.trim();
                 if (!raw) return;
 
                 const message = this.normalizeText(raw);
                 document.getElementById('messageInput').value = '';
 
-                const bubbleId = this.addBubble(raw, 'pending');
-                this.sendQueue.push({ message, bubbleId });
+                const bubbleId = this.addBubble(raw, 'sent');
                 document.getElementById('messageInput').focus();
 
-                this.tryProcessQueue();
-            }
-
-            tryProcessQueue() {
-                if (this.isSending || this.inMessage || this.sendQueue.length === 0) {
-                    if (this.sendQueue.length > 0) this.setChannelState('queued');
-                    return;
-                }
-
-                const next = this.sendQueue.shift();
-                this.transmit(next.message, next.bubbleId);
+                this.transmit(message, bubbleId);
             }
 
             transmit(message, bubbleId) {
@@ -600,9 +589,7 @@
 
                 setTimeout(() => {
                     this.isSending = false;
-                    this.markBubbleSent(bubbleId);
-                    this.setChannelState(this.sendQueue.length ? 'queued' : 'idle');
-                    this.tryProcessQueue();
+                    this.setChannelState('idle');
                 }, totalDuration + 150);
             }
 
@@ -656,11 +643,6 @@
                 feed.appendChild(bubble);
                 feed.scrollTop = feed.scrollHeight;
                 return id;
-            }
-
-            markBubbleSent(bubbleId) {
-                const bubble = document.getElementById(bubbleId);
-                if (bubble) bubble.className = 'bubble sent';
             }
         }
 
