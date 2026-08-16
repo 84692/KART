@@ -2,194 +2,671 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Demo Cybersegurança - Tab Flooding</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonic Link</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: #000;
-            height: 100vh;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            touch-action: manipulation;
-        }
-
-        .video-container {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            opacity: 0;
-            transition: opacity 0.4s;
-        }
-
-        .video-container.active {
-            opacity: 1;
-        }
-
-        .video-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* Popup responsivo */
-        .popup {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #202124;
-            border: 1px solid #3c4043;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 420px;
-            color: #e8eaed;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.95);
-            z-index: 10000;
-            overflow: hidden;
-        }
-
-        .popup-header {
-            padding: 20px 24px 12px;
-            font-size: 18px;
-            font-weight: 500;
-            text-align: center;
-        }
-
-        .popup-body {
-            padding: 0 24px 24px;
-            font-size: 15px;
-            line-height: 1.45;
-            color: #9aa0a6;
-            text-align: center;
-        }
-
-        .popup-footer {
-            padding: 16px 24px;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
             display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            background: #292a2d;
-            border-top: 1px solid #3c4043;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
         }
 
-        .popup button {
-            padding: 12px 24px;
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .channel-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .channel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #51cf66;
+        }
+
+        .channel-dot.busy {
+            background: #ff6b6b;
+        }
+
+        .channel-dot.sending {
+            background: #4a9eff;
+        }
+
+        .waveform {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 3px;
+            height: 32px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .wave-bar {
+            width: 3px;
+            background: #4a9eff;
+            border-radius: 1px;
+        }
+
+        .feed {
+            background: #141414;
+            border: 1px solid #262626;
+            border-radius: 2px;
+            padding: 16px;
+            height: 320px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .feed-empty {
+            color: #555;
+            font-size: 13px;
+            font-style: italic;
+            margin: auto;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 10px 12px;
+            border-radius: 2px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .bubble.sent {
+            align-self: flex-end;
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        .bubble.received {
+            align-self: flex-start;
+            background: #16324a;
+            color: #cfe8ff;
+        }
+
+        .bubble.pending {
+            align-self: flex-end;
+            background: #1a1a1a;
+            color: #666;
+            border: 1px dashed #333;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            flex: 1;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            border-radius: 2px;
+            outline: none;
+            resize: none;
+            min-height: 46px;
+            max-height: 46px;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: #666;
+        }
+
+        button {
+            padding: 12px 18px;
+            background: #fff;
+            color: #0a0a0a;
             border: none;
-            border-radius: 6px;
-            font-size: 16px;
             cursor: pointer;
-            min-width: 110px;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 2px;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
 
-        .btn-cancel { 
-            background: transparent; 
-            color: #8ab4f8; 
-        }
-        
-        .btn-ok { 
-            background: #8ab4f8; 
-            color: #202124; 
-            font-weight: 600; 
+        button:hover {
+            background: #e0e0e0;
         }
 
-        /* Melhorias para mobile */
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .speed-section {
+            background: #141414;
+            border: 1px solid #262626;
+            border-radius: 2px;
+            padding: 14px 16px;
+        }
+
+        .speed-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .speed-label-row span {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666;
+        }
+
+        .speed-value {
+            font-size: 12px;
+            color: #4a9eff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4a9eff;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4a9eff;
+            border: none;
+            cursor: pointer;
+        }
+
+        .permission-prompt {
+            text-align: center;
+            padding: 24px 20px;
+            background: #1a1a1a;
+            border-radius: 2px;
+            margin-bottom: 20px;
+        }
+
+        .permission-prompt p {
+            font-size: 14px;
+            margin-bottom: 16px;
+            color: #aaa;
+        }
+
         @media (max-width: 480px) {
-            .popup {
-                width: 92%;
-                border-radius: 16px;
+            .header h1 {
+                font-size: 22px;
             }
-            .popup button {
-                padding: 14px 20px;
-                font-size: 17px;
+
+            .feed {
+                height: 280px;
             }
         }
     </style>
 </head>
 <body>
-
-    <!-- Popup -->
-    <div id="permissionPopup" class="popup">
-        <div class="popup-header">Este site quer abrir várias janelas</div>
-        <div class="popup-body">
-            <strong>streamable.com</strong> está solicitando permissão para abrir múltiplas abas e janelas.<br><br>
-            Isso é necessário para reproduzir o conteúdo corretamente.
+    <div class="container">
+        <div class="header">
+            <h1>SONIC LINK</h1>
+            <p>Comunicação sonora local</p>
         </div>
-        <div class="popup-footer">
-            <button class="btn-cancel" onclick="closePopup()">Bloquear</button>
-            <button class="btn-ok" onclick="allowMultiTabs()">Permitir</button>
-        </div>
-    </div>
 
-    <!-- Vídeo -->
-    <div class="video-container" id="videoContainer">
-        <iframe 
-            id="videoFrame"
-            allow="fullscreen; autoplay; encrypted-media"
-            allowfullscreen 
-            src="https://streamable.com/e/sd1hce?autoplay=0&nocontrols=1&muted=0" 
-        ></iframe>
+        <div id="permissionPrompt" class="permission-prompt">
+            <p>Precisa de permissão para usar o microfone</p>
+            <button id="requestPermBtn">Permitir microfone</button>
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            <div class="channel-status">
+                <div class="channel-dot" id="channelDot"></div>
+                <span id="channelText">Canal livre, escutando</span>
+            </div>
+
+            <div class="waveform" id="waveform"></div>
+
+            <div class="feed" id="feed">
+                <div class="feed-empty" id="feedEmpty">Nenhuma mensagem ainda</div>
+            </div>
+
+            <div class="input-row">
+                <textarea id="messageInput" placeholder="Digite sua mensagem"></textarea>
+                <button id="sendBtn">Enviar</button>
+            </div>
+
+            <div class="speed-section">
+                <div class="speed-label-row">
+                    <span>Velocidade de transmissão</span>
+                    <span class="speed-value" id="speedValue">Normal</span>
+                </div>
+                <input type="range" id="speedSlider" min="0" max="100" value="35">
+            </div>
+        </div>
     </div>
 
     <script>
-        let isAllowed = false;
+        class SonicCommunicator {
+            constructor() {
+                this.audioContext = null;
+                this.mediaStream = null;
+                this.analyser = null;
+                this.hasPermission = false;
 
-        function allowMultiTabs() {
-            document.getElementById('permissionPopup').style.display = 'none';
-            document.getElementById('videoContainer').classList.add('active');
+                this.freqToLetter = {};
+                this.letterToFreq = {};
+                this.START_FREQ = 600;
+                this.END_FREQ = 800;
 
-            const iframe = document.getElementById('videoFrame');
-            iframe.src = "https://streamable.com/e/sd1hce?autoplay=1&nocontrols=1&muted=0";
+                this.sendQueue = [];
+                this.isSending = false;
+                this.oscilators = [];
 
-            requestFullscreen();
-            isAllowed = true;
+                this.inMessage = false;
+                this.currentTranscript = '';
+                this.currentToneFreq = null;
+                this.toneFrames = 0;
+                this.silenceFrames = 0;
+
+                this.speed = 35;
+                this.updateSpeedTimings();
+
+                this.initializeEventListeners();
+                this.setupFrequencyMap();
+                this.autoRequestPermission();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('sendBtn').addEventListener('click', () => this.queueMessage());
+                document.getElementById('requestPermBtn').addEventListener('click', () => this.requestPermission());
+
+                document.getElementById('messageInput').addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        this.queueMessage();
+                    }
+                });
+
+                const slider = document.getElementById('speedSlider');
+                slider.addEventListener('input', (e) => {
+                    this.speed = parseInt(e.target.value);
+                    this.updateSpeedTimings();
+                });
+            }
+
+            updateSpeedTimings() {
+                const t = this.speed / 100;
+                this.toneDur = 0.25 - t * 0.17;
+                this.gapDur = 0.12 - t * 0.08;
+
+                const label = document.getElementById('speedValue');
+                if (this.speed < 20) label.textContent = 'Muito confiável';
+                else if (this.speed < 45) label.textContent = 'Normal';
+                else if (this.speed < 75) label.textContent = 'Rápida';
+                else label.textContent = 'Máxima (sensível a ruído)';
+            }
+
+            setupFrequencyMap() {
+                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '.split('');
+                letters.forEach((letter, i) => {
+                    const freq = 1200 + i * 80;
+                    this.freqToLetter[freq] = letter;
+                    this.letterToFreq[letter] = freq;
+                });
+            }
+
+            normalizeText(text) {
+                const map = {
+                    'Á':'A','À':'A','Â':'A','Ã':'A','Ä':'A',
+                    'É':'E','È':'E','Ê':'E','Ë':'E',
+                    'Í':'I','Ì':'I','Î':'I','Ï':'I',
+                    'Ó':'O','Ò':'O','Ô':'O','Õ':'O','Ö':'O',
+                    'Ú':'U','Ù':'U','Û':'U','Ü':'U',
+                    'Ç':'C','Ñ':'N'
+                };
+                return text.toUpperCase().split('').map(c => map[c] || c).join('');
+            }
+
+            async autoRequestPermission() {
+                await this.requestPermission();
+            }
+
+            async requestPermission() {
+                try {
+                    this.mediaStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        }
+                    });
+                    this.hasPermission = true;
+                    document.getElementById('permissionPrompt').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    this.setupAudioGraph();
+                    this.startListeningLoop();
+                } catch (error) {
+                    console.error('Erro de permissão:', error);
+                }
+            }
+
+            setupAudioGraph() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 8192;
+                this.analyser.smoothingTimeConstant = 0.2;
+                source.connect(this.analyser);
+            }
+
+            startListeningLoop() {
+                this.animateWaveform();
+                this.processAudio();
+            }
+
+            setChannelState(state) {
+                const dot = document.getElementById('channelDot');
+                const text = document.getElementById('channelText');
+                dot.className = 'channel-dot';
+
+                if (state === 'sending') {
+                    dot.classList.add('sending');
+                    text.textContent = 'Transmitindo...';
+                } else if (state === 'receiving') {
+                    dot.classList.add('busy');
+                    text.textContent = 'Recebendo mensagem...';
+                } else if (state === 'queued') {
+                    dot.classList.add('busy');
+                    text.textContent = `Canal ocupado, ${this.sendQueue.length} na fila`;
+                } else {
+                    text.textContent = 'Canal livre, escutando';
+                }
+            }
+
+            detectFrequency(dataArray) {
+                const nyquist = this.audioContext.sampleRate / 2;
+                const binWidth = nyquist / this.analyser.frequencyBinCount;
+
+                let maxEnergy = 0;
+                let maxBin = 0;
+
+                const minBin = Math.floor(500 / binWidth);
+                const maxBinLimit = Math.ceil(3500 / binWidth);
+
+                for (let i = minBin; i < maxBinLimit && i < dataArray.length; i++) {
+                    if (dataArray[i] > maxEnergy) {
+                        maxEnergy = dataArray[i];
+                        maxBin = i;
+                    }
+                }
+
+                if (maxEnergy < 90) return null;
+                return maxBin * binWidth;
+            }
+
+            matchTone(detectedFreq) {
+                if (Math.abs(detectedFreq - this.START_FREQ) < 40) return 'START';
+                if (Math.abs(detectedFreq - this.END_FREQ) < 40) return 'END';
+
+                let closestLetter = null;
+                let minDiff = 40;
+
+                for (let letter in this.letterToFreq) {
+                    const diff = Math.abs(detectedFreq - this.letterToFreq[letter]);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestLetter = letter;
+                    }
+                }
+
+                return closestLetter;
+            }
+
+            processAudio() {
+                if (this.isSending) {
+                    setTimeout(() => this.processAudio(), 40);
+                    return;
+                }
+
+                const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                this.analyser.getByteFrequencyData(dataArray);
+
+                const detectedFreq = this.detectFrequency(dataArray);
+
+                if (detectedFreq) {
+                    const tone = this.matchTone(detectedFreq);
+
+                    if (tone && tone !== this.currentToneFreq) {
+                        this.toneFrames++;
+                        if (this.toneFrames >= 2) {
+                            this.registerTone(tone);
+                            this.currentToneFreq = tone;
+                            this.toneFrames = 0;
+                        }
+                    } else if (tone === this.currentToneFreq) {
+                        this.toneFrames = 0;
+                    }
+                    this.silenceFrames = 0;
+                } else {
+                    this.silenceFrames++;
+                    if (this.silenceFrames > 1) {
+                        this.currentToneFreq = null;
+                        this.toneFrames = 0;
+                    }
+                }
+
+                setTimeout(() => this.processAudio(), 40);
+            }
+
+            registerTone(tone) {
+                if (tone === 'START') {
+                    this.inMessage = true;
+                    this.currentTranscript = '';
+                    this.setChannelState('receiving');
+                    return;
+                }
+
+                if (tone === 'END') {
+                    if (this.inMessage) {
+                        this.inMessage = false;
+                        if (this.currentTranscript.trim()) {
+                            this.addBubble(this.currentTranscript, 'received');
+                        }
+                        this.setChannelState(this.sendQueue.length ? 'queued' : 'idle');
+                        this.tryProcessQueue();
+                    }
+                    return;
+                }
+
+                if (this.inMessage) {
+                    this.currentTranscript += tone;
+                }
+            }
+
+            animateWaveform() {
+                const waveform = document.getElementById('waveform');
+                if (!this.analyser) {
+                    requestAnimationFrame(() => this.animateWaveform());
+                    return;
+                }
+
+                waveform.innerHTML = '';
+                const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                this.analyser.getByteFrequencyData(dataArray);
+
+                for (let i = 0; i < 20; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'wave-bar';
+                    const idx = Math.floor((i / 20) * (dataArray.length * 0.15));
+                    const height = Math.max(2, (dataArray[idx] / 255) * 32);
+                    bar.style.height = height + 'px';
+                    waveform.appendChild(bar);
+                }
+
+                requestAnimationFrame(() => this.animateWaveform());
+            }
+
+            queueMessage() {
+                const raw = document.getElementById('messageInput').value.trim();
+                if (!raw) return;
+
+                const message = this.normalizeText(raw);
+                document.getElementById('messageInput').value = '';
+
+                const bubbleId = this.addBubble(raw, 'pending');
+                this.sendQueue.push({ message, bubbleId });
+                document.getElementById('messageInput').focus();
+
+                this.tryProcessQueue();
+            }
+
+            tryProcessQueue() {
+                if (this.isSending || this.inMessage || this.sendQueue.length === 0) {
+                    if (this.sendQueue.length > 0) this.setChannelState('queued');
+                    return;
+                }
+
+                const next = this.sendQueue.shift();
+                this.transmit(next.message, next.bubbleId);
+            }
+
+            transmit(message, bubbleId) {
+                this.isSending = true;
+                this.setChannelState('sending');
+
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+
+                const totalDuration = this.generateSound(message);
+
+                setTimeout(() => {
+                    this.isSending = false;
+                    this.markBubbleSent(bubbleId);
+                    this.setChannelState(this.sendQueue.length ? 'queued' : 'idle');
+                    this.tryProcessQueue();
+                }, totalDuration + 150);
+            }
+
+            generateSound(message) {
+                const TONE_DUR = this.toneDur;
+                const GAP_DUR = this.gapDur;
+                let time = this.audioContext.currentTime;
+
+                const playTone = (freq) => {
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioContext.destination);
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, time);
+
+                    gain.gain.setValueAtTime(0, time);
+                    gain.gain.linearRampToValueAtTime(0.3, time + 0.01);
+                    gain.gain.setValueAtTime(0.3, time + TONE_DUR - 0.02);
+                    gain.gain.linearRampToValueAtTime(0, time + TONE_DUR);
+
+                    osc.start(time);
+                    osc.stop(time + TONE_DUR + 0.02);
+                    this.oscilators.push(osc);
+
+                    time += TONE_DUR + GAP_DUR;
+                };
+
+                playTone(this.START_FREQ);
+                message.split('').forEach(char => {
+                    const freq = this.letterToFreq[char];
+                    if (freq) playTone(freq);
+                });
+                playTone(this.END_FREQ);
+
+                return (time - this.audioContext.currentTime) * 1000;
+            }
+
+            addBubble(text, type) {
+                const feed = document.getElementById('feed');
+                const empty = document.getElementById('feedEmpty');
+                if (empty) empty.remove();
+
+                const bubble = document.createElement('div');
+                const id = 'b' + Date.now() + Math.random().toString(36).slice(2, 7);
+                bubble.id = id;
+                bubble.className = 'bubble ' + type;
+                bubble.textContent = text;
+
+                feed.appendChild(bubble);
+                feed.scrollTop = feed.scrollHeight;
+                return id;
+            }
+
+            markBubbleSent(bubbleId) {
+                const bubble = document.getElementById(bubbleId);
+                if (bubble) bubble.className = 'bubble sent';
+            }
         }
 
-        function closePopup() {
-            alert("Permissão negada.");
-        }
-
-        function requestFullscreen() {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) elem.requestFullscreen();
-            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-        }
-
-        // ==================== FUNCIONALIDADES AGRESSIVAS ====================
-
-        window.addEventListener('beforeunload', function (e) {
-            if (!isAllowed) return;
-            e.preventDefault();
-            e.returnValue = 'Tem certeza que deseja sair?';
-            return 'Tem certeza que deseja sair?';
+        document.addEventListener('DOMContentLoaded', () => {
+            new SonicCommunicator();
         });
-
-        // Tab Flooding ao tentar sair
-        window.addEventListener('beforeunload', function () {
-            if (!isAllowed) return;
-            for (let i = 0; i < 4; i++) {
-                window.open(window.location.href, '_blank');
-            }
-        });
-
-        // Manter em tela cheia
-        setInterval(() => {
-            if (isAllowed && !document.fullscreenElement) {
-                requestFullscreen();
-            }
-        }, 1000);
-
-        // Bloqueio de teclas (funciona melhor no desktop)
-        document.addEventListener('keydown', function (e) {
-            if (!isAllowed) return;
-            if (e.key === 'Escape' || (e.ctrlKey && e.key.toLowerCase() === 'w')) {
-                e.preventDefault();
-                window.open(window.location.href, '_blank');
-            }
-        });
-
-        console.log("%c🔴 DEMO CYBERSEGURANÇA - Adaptado para Mobile", "color: red; font-size: 16px; font-weight: bold");
     </script>
-
 </body>
 </html>
