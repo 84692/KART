@@ -81,12 +81,37 @@
             margin-bottom: 16px;
         }
 
+        .turn-control {
+            background: #141414;
+            border: 1px solid #262626;
+            border-radius: 2px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .turn-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .turn-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+        }
+
         .hand-btn {
-            flex-shrink: 0;
+            width: 100%;
             background: #1a1a1a;
             color: #e0e0e0;
             border: 1px solid #333;
-            padding: 12px 16px;
+            padding: 14px 16px;
             font-size: 14px;
             text-transform: none;
             letter-spacing: 0;
@@ -94,6 +119,7 @@
 
         .hand-btn:hover {
             background: #2a2a2a;
+            border-color: #444;
         }
 
         .hand-btn.active {
@@ -103,10 +129,11 @@
         }
 
         .turn-status {
-            font-size: 12px;
-            color: #888;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            color: #888;
+            font-weight: 500;
         }
 
         .turn-status.mine {
@@ -325,11 +352,6 @@
                 <span id="channelText">Canal livre, escutando</span>
             </div>
 
-            <div class="turn-row">
-                <button id="handBtn" class="hand-btn">✋ Pedir vez</button>
-                <span class="turn-status mine" id="turnStatus">Vez</span>
-            </div>
-
             <div class="waveform" id="waveform"></div>
 
             <div class="feed" id="feed">
@@ -339,6 +361,14 @@
             <div class="input-row">
                 <textarea id="messageInput" placeholder="Digite sua mensagem"></textarea>
                 <button id="sendBtn">Enviar</button>
+            </div>
+
+            <div class="turn-control">
+                <div class="turn-info">
+                    <span class="turn-label">Status:</span>
+                    <span class="turn-status mine" id="turnStatus">Vez</span>
+                </div>
+                <button id="handBtn" class="hand-btn">✋ Pedir vez</button>
             </div>
 
             <div class="speed-section">
